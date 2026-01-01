@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 import { NextRequest, NextResponse } from 'next/server';
 
 // TODO: Set these to your deployed contract address and RPC

@@ -1,3 +1,5 @@
+export const runtime = 'edge'
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const address = searchParams.get('address')
@@ -8,9 +10,9 @@ export async function GET(req: Request) {
 
   // TODO: Fetch from database or smart contract
   // For now, return error to encourage implementation
-  return Response.json({ 
+  return Response.json({
     error: 'Trader data not implemented',
     message: 'Connect to your backend database to fetch trader statistics',
-    address 
+    address
   }, { status: 501 })
 }

@@ -1,13 +1,15 @@
+export const runtime = 'edge'
+
 import { NextRequest, NextResponse } from 'next/server'
 
 /**
  * XP Tracking API
- * 
+ *
  * For production, implement with:
  * - Database for persistent XP storage
  * - Event listeners on blockchain
  * - Smart contract XP oracle
- * 
+ *
  * This is a placeholder for the real implementation.
  */
 
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
 
   // TODO: Store XP in database
   // For now, return acknowledgment
-  return NextResponse.json({ 
+  return NextResponse.json({
     success: true,
     message: 'XP tracking not yet implemented',
     address,
