@@ -57,10 +57,18 @@ export default function SwapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4 relative">
       <XPBadge />
+
+      <a
+        href="/launch"
+        className="block text-center w-full max-w-md bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl py-3 text-sm font-semibold mb-4 transition"
+      >
+        🚀 BSTN Launch Live — Claim Now
+      </a>
+
       <div className="w-full max-w-md bg-zinc-900 rounded-2xl p-4 shadow-lg">
-        
+
         <WalletConnect />
 
         <h1 className="text-lg font-bold mb-4">Swap on Base</h1>
