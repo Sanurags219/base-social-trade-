@@ -12,6 +12,9 @@ contract BSTNClaim {
     mapping(address => uint256) public xpSnapshot;
     mapping(address => bool) public claimed;
 
+    bool public snapshotLocked;
+    bool public paused;
+
     uint256 public constant XP_TO_BSTN = 100; // 100 BSTN per 1000 XP
 
     constructor(address _bstn) {
@@ -28,14 +31,22 @@ contract BSTNClaim {
         external
         onlyAdmin
     {
+        require(!snapshotLocked, "Snapshot locked");
         require(users.length == xp.length, "Length mismatch");
 
         for (uint256 i = 0; i < users.length; i++) {
             xpSnapshot[users[i]] = xp[i];
         }
+
+        snapshotLocked = true;
+    }
+
+    function setPaused(bool _paused) external onlyAdmin {
+        paused = _paused;
     }
 
     function claim() external {
+        require(!paused, "Claims paused");
         require(!claimed[msg.sender], "Already claimed");
         uint256 xp = xpSnapshot[msg.sender];
         require(xp > 0, "No XP");
