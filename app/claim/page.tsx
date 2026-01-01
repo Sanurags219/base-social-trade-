@@ -2,9 +2,12 @@
 
 import { useAccount, useWriteContract, useChainId } from 'wagmi'
 import { useEffect, useState } from 'react'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
 
-const CLAIM_CONTRACT = '0xYOUR_CLAIM_CONTRACT_ADDRESS'
+const CLAIM_CONTRACT = process.env.NEXT_PUBLIC_BSTN_CLAIM || '0xC822EFcF4DD0f84FF7718266F79A65DEbE418538'
 const BASE_CHAIN_ID = 8453
+
 const CLAIM_ABI = [
   {
     name: 'claim',
@@ -49,21 +52,8 @@ export default function ClaimPage() {
   useEffect(() => {
     const checkClaimStatus = async () => {
       if (!address) return
-
-      try {
-        // TODO: Read claimed status from smart contract
-        // const claimed = await readContract({ 
-        //   address: CLAIM_CONTRACT,
-        //   abi: CLAIM_ABI,
-        //   functionName: 'claimed',
-        //   args: [address]
-        // })
-        // if (claimed) setUserClaimed(true)
-      } catch (error) {
-        console.error('Error checking claim status:', error)
-      }
+      // TODO: Read claimed status from smart contract
     }
-
     checkClaimStatus()
   }, [address])
 
@@ -113,61 +103,70 @@ export default function ClaimPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <h1 className="text-3xl font-bold mb-2">Claim BSTN</h1>
-        <p className="text-zinc-400 mb-6">Convert your XP to Base Social Token</p>
+    <div className="min-h-screen bg-[#05060A] text-white px-3 py-6">
+      <div className="max-w-md mx-auto">
+
+        <h1 className="text-lg font-semibold tracking-tight mb-4">
+          Claim BSTN
+        </h1>
 
         {wrongNetwork && (
-          <div className="bg-red-900 text-red-200 rounded-xl p-4 mb-4">
+          <div className="mb-4 rounded-xl bg-red-900/50 border border-red-500/30 px-4 py-3 text-sm text-red-200">
             ⚠️ Wrong network. Please switch to Base.
           </div>
         )}
 
-        <div className="bg-zinc-900 rounded-xl p-6 mb-6">
-          <p className="text-zinc-400 text-sm mb-2">Your Address</p>
-          <p className="text-lg font-mono truncate">
-            {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Not connected'}
+        <Card>
+          <p className="text-xs text-zinc-500 mb-1">
+            Your allocation
           </p>
-          <p className="text-zinc-500 text-xs mt-2">
-            {wrongNetwork && '❌ Wrong network'}
-            {!wrongNetwork && address && '✅ Base network'}
-          </p>
-        </div>
 
-        <button
-          onClick={handleClaim}
-          disabled={!address || isPending || userClaimed || wrongNetwork || contractPaused}
-          className="w-full bg-green-600 hover:bg-green-500 disabled:bg-zinc-700 disabled:cursor-not-allowed transition rounded-xl py-3 font-semibold mb-4"
-        >
-          {isPending ? 'Claiming...' : userClaimed ? 'Already Claimed' : 'Claim BSTN'}
-        </button>
-
-        {status && (
-          <div className={`p-4 rounded-xl ${status.startsWith('✅') ? 'bg-green-900 text-green-200' : status.includes('⚠️') || status.includes('⏸️') ? 'bg-yellow-900 text-yellow-200' : 'bg-red-900 text-red-200'}`}>
-            {status}
+          <div className="text-3xl font-bold mb-1">
+            1,250 BSTN
           </div>
-        )}
 
-        <div className="mt-6 bg-zinc-900 rounded-xl p-4 text-sm text-zinc-400">
-          <p className="font-semibold mb-2">Security:</p>
-          <ul className="space-y-1 text-xs">
-            <li>✅ One-time claim per wallet (immutable)</li>
-            <li>✅ Snapshot locked after admin setup</li>
-            <li>✅ Emergency pause in case of issues</li>
-            <li>✅ Base network required</li>
-          </ul>
+          <p className="text-xs text-zinc-500 mb-4">
+            Based on your XP snapshot
+          </p>
+
+          <div className="mb-4 p-3 rounded-xl bg-black/50 border border-[#1E293B]">
+            <p className="text-xs text-zinc-500 mb-1">Connected wallet</p>
+            <p className="text-sm font-mono text-zinc-300">
+              {address ? `${address.slice(0, 6)}…${address.slice(-4)}` : 'Not connected'}
+            </p>
+          </div>
+
+          <Button
+            onClick={handleClaim}
+            disabled={!address || isPending || userClaimed || wrongNetwork || contractPaused}
+          >
+            {isPending ? 'Claiming...' : userClaimed ? 'Already Claimed' : 'Claim Tokens'}
+          </Button>
+
+          {status && (
+            <div className={`mt-4 p-3 rounded-xl text-sm ${
+              status.startsWith('✅') 
+                ? 'bg-green-900/30 border border-green-500/30 text-green-300' 
+                : status.includes('⏸️') 
+                  ? 'bg-yellow-900/30 border border-yellow-500/30 text-yellow-300' 
+                  : 'bg-red-900/30 border border-red-500/30 text-red-300'
+            }`}>
+              {status}
+            </div>
+          )}
+        </Card>
+
+        <div className="mt-4">
+          <Card>
+            <p className="text-xs text-zinc-500 mb-2">How it works</p>
+            <ul className="space-y-1 text-xs text-zinc-400">
+              <li>• 100 BSTN per 1,000 XP earned</li>
+              <li>• One-time claim per wallet</li>
+              <li>• Tokens sent directly to your wallet</li>
+            </ul>
+          </Card>
         </div>
 
-        <div className="mt-4 bg-zinc-900 rounded-xl p-4 text-sm text-zinc-400">
-          <p className="font-semibold mb-2">How it works:</p>
-          <ul className="space-y-1 text-xs">
-            <li>• 100 BSTN per 1000 XP earned</li>
-            <li>• One-time claim per wallet</li>
-            <li>• Admin takes XP snapshot</li>
-            <li>• Claim your tokens here</li>
-          </ul>
-        </div>
       </div>
     </div>
   )

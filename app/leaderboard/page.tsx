@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Card } from '@/components/ui/Card'
 
 type UserXP = {
   address: string
@@ -33,73 +34,87 @@ export default function LeaderboardPage() {
     fetch('/api/xp')
       .then((r) => r.json())
       .then((data) => {
-        setUsers(data)
-        // Fetch reputation for each user
-        data.forEach((u: UserXP) => {
-          fetch(`/api/reputation?address=${u.address}`)
-            .then((r) => r.json())
-            .then((rep) => {
-              setReputations((prev) => ({ ...prev, [u.address]: rep }))
-            })
-            .catch(() => {})
-        })
+        if (Array.isArray(data)) {
+          setUsers(data)
+          data.forEach((u: UserXP) => {
+            fetch(`/api/reputation?address=${u.address}`)
+              .then((r) => r.json())
+              .then((rep) => {
+                setReputations((prev) => ({ ...prev, [u.address]: rep }))
+              })
+              .catch(() => {})
+          })
+        }
       })
   }, [])
 
   return (
-    <div className="min-h-screen bg-black text-white p-4">
-      <h1 className="text-xl font-bold mb-4">🏆 XP Leaderboard</h1>
+    <div className="min-h-screen bg-[#05060A] text-white px-3 py-6">
+      <div className="max-w-md mx-auto">
 
-      <div className="space-y-2">
-        {users.map((u, i) => {
-          const rep = reputations[u.address]
-          const badge = rep ? getReputationBadge(rep.score) : null
-          return (
-            <div
-              key={u.address}
-              className="flex justify-between items-center bg-zinc-900 rounded-xl p-3"
-            >
-              <div className="flex-1">
-                <span className="text-zinc-400">
-                  #{i + 1} {u.address.slice(0, 6)}…{u.address.slice(-4)}
-                </span>
-                {badge && (
-                  <span className="ml-2 text-xs">
-                    {badge.emoji} {badge.label}
-                  </span>
-                )}
-              </div>
-              <span className="text-green-400 font-bold mr-4">
-                {u.xp} XP
-              </span>
-              <a
-                href={`/trader/${u.address}`}
-                className="text-blue-400 hover:text-blue-300 text-sm whitespace-nowrap mr-2"
-              >
-                View →
-              </a>
-              {rep && (
-                <a
-                  href={`/reputation/${u.address}`}
-                  className="text-purple-400 hover:text-purple-300 text-sm whitespace-nowrap"
-                >
-                  Rep →
-                </a>
-              )}
-            </div>
-          )
-        })}
-      </div>
+        <h1 className="text-lg font-semibold tracking-tight mb-4">
+          Leaderboard
+        </h1>
 
-      <div className="mt-6 bg-zinc-900 rounded-xl p-4 text-sm text-zinc-400">
-        <p className="font-semibold mb-2">💡 How it works:</p>
-        <ul className="space-y-1 text-xs">
-          <li>• Click "View →" to see trader profile</li>
-          <li>• Click "Rep →" to see reputation details</li>
-          <li>• Click "Copy Trade" to follow them</li>
-          <li>• Earn +25 XP per copy</li>
-          <li>• Build your network</li>
-        </ul>
+        <div className="space-y-3">
+          {users.length === 0 ? (
+            <Card>
+              <p className="text-sm text-zinc-400 text-center py-4">
+                No traders yet. Be the first!
+              </p>
+            </Card>
+          ) : (
+            users.map((u, i) => {
+              const rep = reputations[u.address]
+              const badge = rep ? getReputationBadge(rep.score) : null
+              return (
+                <Card key={u.address}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-zinc-500 w-6">
+                        #{i + 1}
+                      </span>
+                      <div>
+                        <span className="text-sm text-zinc-300">
+                          {u.address.slice(0, 6)}…{u.address.slice(-4)}
+                        </span>
+                        {badge && (
+                          <span className="ml-2 text-xs text-zinc-500">
+                            {badge.emoji} {badge.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-semibold text-green-400">
+                        {u.xp.toLocaleString()} XP
+                      </span>
+                      <a
+                        href={`/trader/${u.address}`}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        View →
+                      </a>
+                    </div>
+                  </div>
+                </Card>
+              )
+            })
+          )}
+        </div>
+
+        <div className="mt-4">
+          <Card>
+            <p className="text-xs text-zinc-500 mb-2">How it works</p>
+            <ul className="space-y-1 text-xs text-zinc-400">
+              <li>• Earn XP by trading and social actions</li>
+              <li>• Higher XP = better leaderboard position</li>
+              <li>• Copy top traders to learn strategies</li>
+            </ul>
+          </Card>
+        </div>
+
       </div>
     </div>
   )
