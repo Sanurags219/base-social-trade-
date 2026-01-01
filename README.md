@@ -18,16 +18,61 @@ Base Social Trade is a social trading dApp on the Base blockchain. Connect your 
 - 🎮 XP gamification system
 - 💳 Wallet connection via OnchainKit
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+---
 
-## Getting Started
+## 🚀 Tokenomics (BSTN)
 
-First, run the development server:
+**Base Social Token (BSTN)** - Claim XP as tokens
 
-```bash
-npm run dev
-# or
-yarn dev
+- Total Supply: 1,000,000,000 BSTN
+- Initial Price: 0.00001 ETH per BSTN
+- Fee Tier: 0.3% (Uniswap V3)
+- Network: Base Mainnet
+
+### How to Get BSTN:
+
+1. **Earn XP** by swapping & sharing on Farcaster
+2. **Go to `/claim`** and redeem (100 BSTN per 1000 XP)
+3. **Trade on Uniswap** V3 BSTN/WETH pool
+4. **View rankings** on `/leaderboard`
+
+### Why BSTN?
+
+- ✅ Reward early users
+- ✅ Fair distribution (proof-of-activity)
+- ✅ Community ownership
+- ✅ Trade your own token
+
+---
+
+## 📊 Deployment & Liquidity
+
+**Status:** Ready for mainnet
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for:
+- Smart contract deployment steps
+- BSTNClaim setup
+- XP snapshot process
+
+See [LIQUIDITY.md](LIQUIDITY.md) for:
+- Pricing strategy
+- Uniswap V3 pool setup
+- LP token security
+- Launch checklist
+
+---
+
+## Pages
+
+| Page | Purpose |
+|------|---------|
+| `/` | Home - Base connectivity check |
+| `/swap` | Swap ETH for tokens + share |
+| `/claim` | Redeem XP as BSTN tokens |
+| `/leaderboard` | View top XP earners |
+
+---
+
 # or
 pnpm dev
 # or
