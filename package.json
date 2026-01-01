@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@coinbase/onchainkit": "^1.1.2",
+    "@farcaster/miniapp-sdk": "^0.2.1",
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@uniswap/v3-periphery": "^1.4.4",
     "dotenv": "^17.2.3",
