@@ -2,6 +2,8 @@
 
 import { useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { useAccount } from 'wagmi'
+import { AutoCopySettings } from '@/components/AutoCopySettings'
 
 interface TraderStats {
   xp: number
@@ -24,9 +26,11 @@ function getReputationTier(score: number) {
 
 export default function TraderProfile() {
   const { address } = useParams()
+  const { address: userAddress } = useAccount()
   const [stats, setStats] = useState<TraderStats | null>(null)
   const [reputation, setReputation] = useState<ReputationData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showAutoCopySettings, setShowAutoCopySettings] = useState(false)
 
   useEffect(() => {
     if (!address) return
@@ -70,7 +74,29 @@ export default function TraderProfile() {
   const repScore = reputation?.score || 0
   const tier = getReputationTier(repScore)
   const canCopyTrade = repScore >= 400
+  const isEligibleForAutoCopy = repScore >= 650
   const isMediumRisk = repScore >= 400 && repScore < 650
+
+  if (showAutoCopySettings) {
+    return (
+      <div className="min-h-screen bg-black text-white p-4">
+        <div className="max-w-md mx-auto">
+          <button
+            onClick={() => setShowAutoCopySettings(false)}
+            className="mb-4 text-zinc-400 hover:text-white text-sm"
+          >
+            ← Back
+          </button>
+          <AutoCopySettings
+            traderAddress={addressStr}
+            traderTier={tier.label}
+            traderReputation={repScore}
+            onClose={() => setShowAutoCopySettings(false)}
+          />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
@@ -151,12 +177,23 @@ export default function TraderProfile() {
         )}
 
         {canCopyTrade ? (
-          <a
-            href={`/swap?copy=${addressStr}&tier=${repScore >= 800 ? 'elite' : repScore >= 600 ? 'trusted' : 'regular'}`}
-            className="block text-center bg-blue-600 hover:bg-blue-500 transition rounded-xl py-3 font-semibold mb-4"
-          >
-            📋 Copy Trade ({tier.label})
-          </a>
+          <>
+            <a
+              href={`/swap?copy=${addressStr}&tier=${repScore >= 800 ? 'elite' : repScore >= 600 ? 'trusted' : 'regular'}`}
+              className="block text-center bg-blue-600 hover:bg-blue-500 transition rounded-xl py-3 font-semibold mb-3"
+            >
+              📋 Manual Copy Trade ({tier.label})
+            </a>
+
+            {isEligibleForAutoCopy && userAddress && (
+              <button
+                onClick={() => setShowAutoCopySettings(true)}
+                className="block w-full text-center bg-green-600 hover:bg-green-500 transition rounded-xl py-3 font-semibold mb-4"
+              >
+                🤖 Enable Auto Copy
+              </button>
+            )}
+          </>
         ) : (
           <button
             disabled
@@ -181,6 +218,16 @@ export default function TraderProfile() {
         </a>
 
         <div className="mt-6 bg-zinc-900/50 rounded-xl p-4 text-xs text-zinc-400">
+          <p className="font-semibold mb-2">📊 Copy Trading:</p>
+          <ul className="space-y-1">
+            <li>💰 Manual: Set amount & execute once</li>
+            <li>🤖 Auto: Mirror trades automatically</li>
+            <li>🔐 Non-custodial (you control funds)</li>
+            <li>✅ Withdraw anytime, no lockup</li>
+          </ul>
+        </div>
+
+        <div className="mt-4 bg-zinc-900/50 rounded-xl p-4 text-xs text-zinc-400">
           <p className="font-semibold mb-2">📊 XP Rewards by Tier:</p>
           <ul className="space-y-1">
             <li>🟢 Elite (800+) → +40 XP per copy</li>
