@@ -55,30 +55,14 @@ function encodeGetReputationCall(address: string): string {
   return selector + paddedAddress;
 }
 
-// Fallback mock data with seed
+// Fallback: Return error instead of mock data
 function getMockReputation(address: string) {
-  const seed = parseInt(address.slice(2, 10), 16) || Math.random();
-  const random = (min: number, max: number) => {
-    const pseudo = Math.sin(seed * 12.9898 + Math.random()) * 43758.5453;
-    return Math.floor((pseudo - Math.floor(pseudo)) * (max - min) + min);
-  };
-
-  const xpScore = random(0, 300);
-  const tradingScore = random(0, 200);
-  const ageScore = random(0, 150);
-  const socialScore = random(0, 150);
-  const riskScore = random(0, 200);
-
   return {
-    score: xpScore + tradingScore + ageScore + socialScore + riskScore,
-    breakdown: {
-      xpScore,
-      tradingScore,
-      ageScore,
-      socialScore,
-      riskScore,
-    },
-    source: 'mock'
+    error: 'On-chain reputation not available',
+    message: 'Deploy ReputationSBT contract and update contract address in .env.local',
+    address,
+    score: 0,
+    source: 'none'
   };
 }
 
@@ -97,11 +81,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Fallback to mock data
+  // Fallback: return error
   const mockRep = getMockReputation(address);
   return NextResponse.json({
-    address,
     ...mockRep,
     lastUpdated: new Date().toISOString(),
-  });
+  }, { status: 501 });
 }

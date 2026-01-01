@@ -51,13 +51,14 @@ export default function ClaimPage() {
       if (!address) return
 
       try {
-        // Check if user already claimed (would need contract read)
-        // This is a placeholder - in production, read from contract
-        const claimed = localStorage.getItem(`claimed_${address}`)
-        if (claimed) {
-          setUserClaimed(true)
-          setStatus('✅ Already claimed - one claim per wallet')
-        }
+        // TODO: Read claimed status from smart contract
+        // const claimed = await readContract({ 
+        //   address: CLAIM_CONTRACT,
+        //   abi: CLAIM_ABI,
+        //   functionName: 'claimed',
+        //   args: [address]
+        // })
+        // if (claimed) setUserClaimed(true)
       } catch (error) {
         console.error('Error checking claim status:', error)
       }
@@ -98,7 +99,6 @@ export default function ClaimPage() {
         },
         {
           onSuccess: () => {
-            localStorage.setItem(`claimed_${address}`, 'true')
             setUserClaimed(true)
             setStatus('✅ BSTN claimed successfully!')
           },

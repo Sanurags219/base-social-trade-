@@ -50,17 +50,12 @@ export default function SwapPage() {
     }
   }, [])
 
-  // Mock: In production, use wallet balance from viem
+// TODO: Fetch real balance from wallet
   useEffect(() => {
     if (address) {
-      // Simulate fetching balance
-      const mockBalance = 10 // 10 ETH
-      setUserBalance(mockBalance)
-      
-      // If copy trade, prefill with 10% of balance
-      if (copyContext) {
-        setAmount((mockBalance * 0.1).toFixed(4))
-      }
+      // TODO: Use viem's getBalance or Wagmi's useBalance hook
+      // const balance = await publicClient.getBalance({ address })
+      setUserBalance(0) // Set to 0 until implemented
     }
   }, [address, copyContext])
 
