@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount, useWalletClient } from 'wagmi'
 import { getQuote, SWAP_ROUTER, swapAbi, buildSwapParams } from '@/lib/swap'
 import { ShareTrade } from '@/components/ShareTrade'
@@ -10,12 +10,20 @@ import { WalletConnect } from '@/components/WalletConnect'
 export default function SwapPage() {
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient()
+
   const [amount, setAmount] = useState('')
   const [quote, setQuote] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [slippage, setSlippage] = useState(1)
+  const [copyAddress, setCopyAddress] = useState<string | null>(null)
+
+  useEffect(() => {
+    // Get copy parameter from URL
+    const searchParams = new URLSearchParams(window.location.search)
+    setCopyAddress(searchParams.get('copy'))
+  }, [])
 
   const previewSwap = async () => {
     setLoading(true)
@@ -66,6 +74,12 @@ export default function SwapPage() {
       >
         🚀 BSTN Launch Live — Claim Now
       </a>
+
+      {copyAddress && (
+        <div className="block text-center w-full max-w-md bg-purple-600/20 border border-purple-600 rounded-xl p-3 mb-4 text-sm font-semibold">
+          📋 Copying trades from {copyAddress.slice(0, 6)}…
+        </div>
+      )}
 
       <div className="w-full max-w-md bg-zinc-900 rounded-2xl p-4 shadow-lg">
 
