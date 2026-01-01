@@ -36,15 +36,17 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const address = searchParams.get('address')
 
-  if (!address) {
-    return NextResponse.json({ error: 'No address provided' }, { status: 400 })
+  if (address) {
+    // Single user XP query
+    return NextResponse.json({
+      error: 'XP data not implemented',
+      address,
+      xp: 0,
+      database: 'Connect to Supabase or your backend database'
+    }, { status: 501 })
   }
 
-  // TODO: Fetch XP from database
-  return NextResponse.json({
-    error: 'XP data not implemented',
-    address,
-    xp: 0,
-    database: 'Connect to Supabase or your backend database'
-  }, { status: 501 })
+  // Leaderboard query - return empty array
+  // TODO: Fetch top users from database
+  return NextResponse.json([], { status: 200 })
 }
