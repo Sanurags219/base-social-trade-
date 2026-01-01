@@ -7,6 +7,12 @@ import { ShareTrade } from '@/components/ShareTrade'
 import { XPBadge } from '@/components/XPBadge'
 import { WalletConnect } from '@/components/WalletConnect'
 
+interface CopyContext {
+  address: string
+  tier: string
+  reputation: number
+}
+
 export default function SwapPage() {
   const { address } = useAccount()
   const { data: walletClient } = useWalletClient()
@@ -17,15 +23,52 @@ export default function SwapPage() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [slippage, setSlippage] = useState(1)
-  const [copyAddress, setCopyAddress] = useState<string | null>(null)
+  const [copyContext, setCopyContext] = useState<CopyContext | null>(null)
+  const [userBalance, setUserBalance] = useState(0)
 
   useEffect(() => {
     // Get copy parameter from URL
     const searchParams = new URLSearchParams(window.location.search)
-    setCopyAddress(searchParams.get('copy'))
+    const copy = searchParams.get('copy')
+    const tier = searchParams.get('tier') || 'unknown'
+
+    if (copy) {
+      // Fetch reputation for trader being copied
+      fetch(`/api/reputation?address=${copy}`)
+        .then(r => r.json())
+        .then(d => {
+          setCopyContext({
+            address: copy,
+            tier: tier,
+            reputation: d.score || 0
+          })
+          // Set safety defaults for copy trades
+          setSlippage(1) // Cap at 1%
+          // Amount will be set to 10% when balance is fetched
+        })
+        .catch(e => console.error('Failed to fetch reputation:', e))
+    }
   }, [])
 
+  // Mock: In production, use wallet balance from viem
+  useEffect(() => {
+    if (address) {
+      // Simulate fetching balance
+      const mockBalance = 10 // 10 ETH
+      setUserBalance(mockBalance)
+      
+      // If copy trade, prefill with 10% of balance
+      if (copyContext) {
+        setAmount((mockBalance * 0.1).toFixed(4))
+      }
+    }
+  }, [address, copyContext])
+
   const previewSwap = async () => {
+    if (!amount) {
+      setError('Enter an amount')
+      return
+    }
     setLoading(true)
     const q = await getQuote(amount)
     setQuote(q)
@@ -54,6 +97,20 @@ export default function SwapPage() {
         value: params.amountIn
       })
 
+      // Award XP if copy trade
+      if (copyContext) {
+        fetch('/api/xp', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            address,
+            xp: 10, // Base XP (tier multiplier handled in API)
+            copiedFrom: copyContext.address,
+            copiedFromRep: copyContext.reputation
+          })
+        }).catch(e => console.error('Failed to record XP:', e))
+      }
+
       alert('Swap submitted 🚀')
     } catch (e: any) {
       const msg = e?.shortMessage || 'Swap failed. Try again.'
@@ -75,9 +132,19 @@ export default function SwapPage() {
         🚀 BSTN Launch Live — Claim Now
       </a>
 
-      {copyAddress && (
-        <div className="block text-center w-full max-w-md bg-purple-600/20 border border-purple-600 rounded-xl p-3 mb-4 text-sm font-semibold">
-          📋 Copying trades from {copyAddress.slice(0, 6)}…
+      {copyContext && (
+        <div className="block text-center w-full max-w-md bg-purple-600/20 border border-purple-600 rounded-xl p-4 mb-4">
+          <div className="text-sm font-semibold mb-1">📋 Copy Trading Mode</div>
+          <div className="text-xs text-zinc-300">
+            Copying {copyContext.address.slice(0, 6)}… 
+            <span className="ml-2">
+              {copyContext.tier === 'elite' && '🟢 Elite'}
+              {copyContext.tier === 'trusted' && '🔵 Trusted'}
+              {copyContext.tier === 'regular' && '🟡 Regular'}
+            </span>
+          </div>
+          <div className="text-xs text-zinc-400 mt-1">Rep: {copyContext.reputation}</div>
+          <div className="text-yellow-400 text-xs mt-2 font-semibold">⚠️ Manual confirmation required</div>
         </div>
       )}
 
@@ -98,6 +165,9 @@ export default function SwapPage() {
             className="w-full bg-transparent text-xl outline-none mt-1"
           />
           <div className="text-xs text-zinc-500 mt-1">ETH</div>
+          {copyContext && (
+            <div className="text-xs text-purple-400 mt-2">💡 Pre-filled with 10% of balance for safety</div>
+          )}
         </div>
 
         <div className="mt-3">
@@ -107,12 +177,15 @@ export default function SwapPage() {
           <input
             type="range"
             min="0.1"
-            max="5"
+            max={copyContext ? 1 : 5}
             step="0.1"
             value={slippage}
             onChange={(e) => setSlippage(Number(e.target.value))}
             className="w-full"
           />
+          {copyContext && slippage > 1 && (
+            <div className="text-yellow-400 text-xs mt-1">⚠️ Copy trades capped at 1% slippage</div>
+          )}
         </div>
 
         {error && (
