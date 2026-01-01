@@ -1,16 +1,24 @@
 'use client'
 
 import { shareToFarcaster } from '@/lib/farcaster'
+import { useAccount } from 'wagmi'
 
 export function ShareTrade({ amount }: { amount: string }) {
+  const { address } = useAccount()
+
   const onShare = async () => {
+    if (!address) return alert('Connect wallet')
+
     shareToFarcaster(
       `I just swapped ${amount} ETH on Base 🚀`,
       `${location.origin}/api/og/trade?amount=${amount}`
     )
 
-    // award XP
-    await fetch('/api/xp', { method: 'POST' })
+    await fetch('/api/xp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address })
+    })
   }
 
   return (
