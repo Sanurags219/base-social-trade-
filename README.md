@@ -1,3 +1,23 @@
+# Base Social Trade
+
+🚀 **We just launched Base Social Trade**
+
+- Swap on Base
+- Share trades on Farcaster  
+- Earn XP for every share
+
+Built as a Base Mini App ⚡
+
+## Overview
+
+Base Social Trade is a social trading dApp on the Base blockchain. Connect your wallet, execute token swaps via Uniswap V3, and share your trades on Farcaster to earn XP rewards.
+
+**Features:**
+- 🔄 Token swaps on Base via Uniswap V3
+- 📱 Farcaster integration for social sharing
+- 🎮 XP gamification system
+- 💳 Wallet connection via OnchainKit
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
