@@ -4,10 +4,10 @@ import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'BSTN Social Trade',
-  description: 'Social trading, earn XP & reputation on Base',
+  description: 'Social trading, XP, reputation & credit on Base',
   openGraph: {
     title: 'BSTN Social Trade',
-    description: 'Swap, share, earn XP on Base mainnet',
+    description: 'Swap, share trades, earn XP on Base',
     url: 'https://base-social-trade.vercel.app',
     siteName: 'BSTN',
     images: [
@@ -23,6 +23,15 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'BSTN',
+  },
+  other: {
+    'fc:frame': 'vNext',
+    'fc:frame:image': '/api/og/trade',
+    'fc:miniapp': 'true',
+    'fc:miniapp:name': 'BSTN Social Trade',
+    'fc:miniapp:description': 'Social trading & onchain reputation on Base',
+    'fc:miniapp:url': 'https://base-social-trade.vercel.app',
+    'fc:miniapp:icon': 'https://base-social-trade.vercel.app/icon.svg',
   },
 }
 
