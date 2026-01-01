@@ -1,14 +1,29 @@
 import './globals.css'
 import { Providers } from './providers'
+import { Metadata } from 'next'
 
-export const metadata = {
-  title: 'Base Social Trade',
-  description: 'Swap on Base. Share trades. Earn XP.',
+export const metadata: Metadata = {
+  title: 'BSTN Social Trade',
+  description: 'Social trading, earn XP & reputation on Base',
   openGraph: {
-    title: 'Base Social Trade',
-    description: 'Social trading on Base',
-    images: ['/api/og/trade']
-  }
+    title: 'BSTN Social Trade',
+    description: 'Swap, share, earn XP on Base mainnet',
+    url: 'https://base-social-trade.vercel.app',
+    siteName: 'BSTN',
+    images: [
+      {
+        url: '/api/og/trade',
+        width: 1200,
+        height: 630,
+      },
+    ],
+    type: 'website',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'BSTN',
+  },
 }
 
 export default function RootLayout({
