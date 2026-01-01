@@ -84,6 +84,13 @@ export default function TraderProfile() {
         </a>
 
         <a
+          href={`/reputation/${addressStr}`}
+          className="block text-center bg-purple-600 hover:bg-purple-500 transition rounded-xl py-3 font-semibold mb-4"
+        >
+          ⭐ View Reputation
+        </a>
+
+        <a
           href="/leaderboard"
           className="block text-center bg-zinc-900 hover:bg-zinc-800 transition rounded-xl py-3 font-semibold text-zinc-400"
         >
