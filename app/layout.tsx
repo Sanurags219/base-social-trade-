@@ -1,19 +1,19 @@
-ï»¿import './globals.css'
+import './globals.css'
 import { Providers } from './providers'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Baseline',
-  description: 'Know your onchain baseline â€” portfolio, health score, reputation & events on Base.',
+  description: 'Know your onchain baseline — portfolio, health score, reputation & events on Base.',
   metadataBase: new URL('https://base-social-trade.vercel.app'),
   openGraph: {
     title: 'Baseline',
-    description: 'Know your onchain baseline â€” portfolio, health score & reputation on Base.',
+    description: 'Know your onchain baseline — portfolio, health score & reputation on Base.',
     url: 'https://base-social-trade.vercel.app',
     siteName: 'Baseline',
     images: [
       {
-        url: '/api/og/health',
+        url: 'https://base-social-trade.vercel.app/og-image.png',
         width: 1200,
         height: 630,
       },
@@ -32,10 +32,10 @@ export const metadata: Metadata = {
   },
   other: {
     'fc:frame': 'vNext',
-    'fc:frame:image': '/api/og/health',
+    'fc:frame:image': 'https://base-social-trade.vercel.app/og-image.png',
     'fc:miniapp': 'true',
     'fc:miniapp:name': 'Baseline',
-    'fc:miniapp:description': 'Know your onchain baseline â€” portfolio, health score & reputation.',
+    'fc:miniapp:description': 'Know your onchain baseline — portfolio, health score & reputation.',
     'fc:miniapp:url': 'https://base-social-trade.vercel.app',
     'fc:miniapp:icon': 'https://base-social-trade.vercel.app/icon.png',
   },
