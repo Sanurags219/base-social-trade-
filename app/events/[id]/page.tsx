@@ -2,12 +2,39 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
-import { useAccount } from 'wagmi'
+import { useAccount, useWriteContract, useReadContract, useChainId } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { WalletConnect } from '@/components/WalletConnect'
 import Link from 'next/link'
+
+const SBT_CONTRACT = process.env.NEXT_PUBLIC_REP_CONTRACT || '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786'
+const BASE_CHAIN_ID = 8453
+
+const SBT_ABI = [
+  {
+    name: 'claim',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [],
+    outputs: []
+  },
+  {
+    name: 'hasClaimed',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'totalSupply',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const
 
 interface Event {
   id: string
@@ -47,13 +74,31 @@ export default function EventDetailPage() {
   const params = useParams()
   const eventId = params.id as string
   const { address, isConnected } = useAccount()
+  const chainId = useChainId()
+  const { writeContract, isPending: claiming } = useWriteContract()
   
   const [event, setEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
-  const [claiming, setClaiming] = useState(false)
   const [claimed, setClaimed] = useState(false)
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState('')
+
+  const wrongNetwork = chainId !== BASE_CHAIN_ID
+
+  // Check if user already claimed SBT
+  const { data: hasClaimed, refetch: refetchClaimed } = useReadContract({
+    address: SBT_CONTRACT as `0x${string}`,
+    abi: SBT_ABI,
+    functionName: 'hasClaimed',
+    args: address ? [address] : undefined,
+  })
+
+  // Get total supply for display
+  const { data: totalSupply } = useReadContract({
+    address: SBT_CONTRACT as `0x${string}`,
+    abi: SBT_ABI,
+    functionName: 'totalSupply',
+  })
   
   useEffect(() => {
     const fetchEvent = async () => {
@@ -76,30 +121,38 @@ export default function EventDetailPage() {
   }, [eventId])
   
   const handleClaim = async () => {
-    if (!address || !event) return
+    if (!address || !event || wrongNetwork) return
     
-    setClaiming(true)
     setError('')
     
     try {
-      const res = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventId: event.id, address }),
-      })
-      
-      const data = await res.json()
-      
-      if (res.ok && data.success) {
-        setClaimed(true)
-        setTxHash(data.txHash)
-      } else {
-        setError(data.error || 'Failed to claim')
-      }
-    } catch (e) {
-      setError('Failed to claim reward')
-    } finally {
-      setClaiming(false)
+      // Call on-chain claim function directly from user's wallet
+      writeContract(
+        {
+          address: SBT_CONTRACT as `0x${string}`,
+          abi: SBT_ABI,
+          functionName: 'claim'
+        },
+        {
+          onSuccess: (hash) => {
+            setClaimed(true)
+            setTxHash(hash)
+            refetchClaimed()
+          },
+          onError: (error) => {
+            if (error.message.includes('Already claimed')) {
+              setError('You have already claimed your SBT')
+              setClaimed(true)
+            } else if (error.message.includes('User rejected')) {
+              setError('Transaction cancelled')
+            } else {
+              setError(error.message || 'Failed to claim')
+            }
+          }
+        }
+      )
+    } catch (e: any) {
+      setError(e?.message || 'Failed to claim reward')
     }
   }
   
@@ -280,13 +333,19 @@ export default function EventDetailPage() {
       
       {/* Claim Section */}
       <div className="mt-6">
-        {claimed ? (
+        {wrongNetwork && (
+          <div className="mb-4 rounded-xl bg-red-900/30 border border-red-500/20 px-4 py-3 text-sm text-red-300 text-center">
+            Wrong network. Please switch to Base.
+          </div>
+        )}
+        
+        {claimed || hasClaimed ? (
           <Card>
             <div className="text-center py-4">
               <span className="text-4xl">🎉</span>
               <h3 className="font-bold text-lg mt-2">Reward Claimed!</h3>
               <p className="text-sm text-zinc-400 mt-1">
-                Congratulations! Your rewards are on the way.
+                Congratulations! Your Genesis SBT is now in your wallet.
               </p>
               
               {txHash && (
@@ -317,10 +376,12 @@ export default function EventDetailPage() {
           <>
             <Button
               onClick={handleClaim}
-              disabled={!isConnected || event.status !== 'active' || claiming || !!isFull}
+              disabled={!isConnected || event.status !== 'active' || claiming || !!isFull || wrongNetwork}
             >
               {!isConnected
                 ? 'Connect Wallet'
+                : wrongNetwork
+                ? 'Switch to Base'
                 : event.status === 'upcoming'
                 ? 'Coming Soon'
                 : event.status === 'ended'
@@ -329,8 +390,12 @@ export default function EventDetailPage() {
                 ? 'Event Full'
                 : claiming
                 ? '⏳ Claiming...'
-                : 'Claim Reward'}
+                : 'Claim SBT (Free + Gas)'}
             </Button>
+            
+            <p className="text-xs text-zinc-500 mt-2 text-center">
+              One claim per wallet. Only pay gas fees (~$0.01).
+            </p>
             
             {error && (
               <div className="mt-3 p-3 rounded-xl bg-red-900/30 border border-red-500/20 text-xs text-red-300 text-center">
