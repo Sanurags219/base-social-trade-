@@ -26,99 +26,151 @@ const MINT_ABI = [
   }
 ] as const
 
+export interface EventGate {
+  minHealth?: number
+  minXP?: number
+  minTier?: 'Trusted' | 'Elite'
+}
+
 export interface Event {
   id: string
   title: string
   description: string
-  type: 'launch' | 'challenge' | 'early-supporter' | 'partner'
-  status: 'active' | 'upcoming' | 'ended'
+  type: 'exclusive' | 'invite-only' | 'public'
+  status: 'live' | 'upcoming' | 'ended'
   rewards: {
     sbt?: boolean
     xp?: number
     token?: { symbol: string; amount: number }
   }
+  gate?: EventGate
   requirements?: string[]
-  participants: number
-  maxParticipants?: number
+  spots?: number
+  spotsRemaining?: number
   startDate: string
   endDate: string
+  closesIn?: string
   image?: string
   partner?: string
 }
 
-// Mock events data - in production, this would come from a database
+// Calculate days until end
+function getDaysLeft(endDate: string): number {
+  return Math.ceil((new Date(endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+}
+
+// Events data - exclusive-first model
 const EVENTS: Event[] = [
+  // Exclusive events (gated)
+  {
+    id: 'trusted-circle',
+    title: 'Baseline Trusted Circle',
+    description: 'Reserved for Trusted members with strong wallet health. Earn premium rewards.',
+    type: 'exclusive',
+    status: 'live',
+    rewards: {
+      sbt: true,
+      xp: 1500,
+    },
+    gate: {
+      minHealth: 60,
+      minTier: 'Trusted'
+    },
+    requirements: [
+      'Maintain Trusted tier',
+      'Wallet health 60+',
+    ],
+    spots: 500,
+    spotsRemaining: 487,
+    startDate: '2026-01-02',
+    endDate: '2026-02-01',
+  },
   {
     id: 'genesis',
-    title: 'BSTN Genesis Event',
-    description: 'Be among the first to join BSTN. Claim your Genesis SBT and earn bonus XP for being an early supporter.',
-    type: 'launch',
-    status: 'active',
+    title: 'BSTN Genesis',
+    description: 'Be among the first to join Baseline. Your Genesis SBT marks you as an early supporter.',
+    type: 'exclusive',
+    status: 'live',
     rewards: {
       sbt: true,
       xp: 500,
+    },
+    gate: {
+      minHealth: 40
     },
     requirements: [
       'Connect wallet',
       'Have at least 0.001 ETH on Base',
     ],
-    participants: 0,
-    maxParticipants: 10000,
+    spots: 10000,
+    spotsRemaining: 9847,
     startDate: '2026-01-02',
     endDate: '2026-02-01',
   },
   {
     id: 'trading-week',
-    title: 'Trading Week Challenge',
+    title: 'Weekly Trading Challenge',
     description: 'Complete 5 swaps this week to earn bonus XP and climb the leaderboard.',
-    type: 'challenge',
-    status: 'active',
+    type: 'exclusive',
+    status: 'live',
     rewards: {
       xp: 250,
+    },
+    gate: {
+      minXP: 100
     },
     requirements: [
       'Complete 5 swaps',
       'Minimum $10 per swap',
     ],
-    participants: 0,
+    spots: undefined,
     startDate: '2026-01-02',
     endDate: '2026-01-09',
   },
+  // Invite-only (ultra premium)
   {
-    id: 'early-bird',
-    title: 'Early Bird Bonus',
-    description: 'First 100 users to reach Trusted tier get exclusive rewards.',
-    type: 'early-supporter',
-    status: 'active',
+    id: 'elite-inner-circle',
+    title: 'Elite Inner Circle',
+    description: 'You have been selected for our most exclusive program. Top-tier rewards await.',
+    type: 'invite-only',
+    status: 'live',
     rewards: {
       sbt: true,
-      xp: 1000,
-      token: { symbol: 'BSTN', amount: 100 },
+      xp: 5000,
+      token: { symbol: 'BSTN', amount: 500 },
+    },
+    gate: {
+      minTier: 'Elite'
     },
     requirements: [
-      'Reach Trusted tier (650+ reputation)',
-      'Be in first 100',
+      'Elite tier membership',
+      'Invitation accepted',
     ],
-    participants: 0,
-    maxParticipants: 100,
+    spots: 50,
+    spotsRemaining: 43,
     startDate: '2026-01-02',
     endDate: '2026-03-02',
   },
+  // Partnership event
   {
     id: 'base-partnership',
-    title: 'Base x BSTN',
+    title: 'Base x Baseline',
     description: 'Special partnership event with Base. Complete tasks to earn exclusive rewards.',
-    type: 'partner',
+    type: 'exclusive',
     status: 'upcoming',
     rewards: {
       xp: 300,
       token: { symbol: 'BSTN', amount: 50 },
     },
+    gate: {
+      minHealth: 50
+    },
     requirements: [
       'Hold any NFT on Base',
-      'Complete 1 swap on BSTN',
+      'Complete 1 swap on Baseline',
     ],
-    participants: 0,
+    spots: 1000,
+    spotsRemaining: 1000,
     startDate: '2026-01-16',
     endDate: '2026-01-31',
     partner: 'Base',
@@ -128,52 +180,95 @@ const EVENTS: Event[] = [
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const eventId = searchParams.get('id')
-  const status = searchParams.get('status')
-  
+  const userHealth = parseInt(searchParams.get('health') || '0')
+  const userXP = parseInt(searchParams.get('xp') || '0')
+  const userTier = searchParams.get('tier') || 'New'
+
+  // Single event lookup
   if (eventId) {
     const event = EVENTS.find(e => e.id === eventId)
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    return NextResponse.json(event)
+    
+    // Add computed fields
+    const daysLeft = getDaysLeft(event.endDate)
+    const closesIn = daysLeft > 0 ? `${daysLeft} days` : 'Ended'
+    
+    return NextResponse.json({
+      ...event,
+      closesIn,
+    })
   }
+
+  // Filter events based on user qualification
+  const tierRank: Record<string, number> = { 'New': 0, 'Regular': 1, 'Trusted': 2, 'Elite': 3 }
   
-  let filteredEvents = EVENTS
-  if (status) {
-    filteredEvents = EVENTS.filter(e => e.status === status)
-  }
+  const qualifiedEvents = EVENTS.filter(event => {
+    if (!event.gate) return true
+    
+    if (event.gate.minHealth && userHealth < event.gate.minHealth) return false
+    if (event.gate.minXP && userXP < event.gate.minXP) return false
+    if (event.gate.minTier) {
+      if (tierRank[userTier] < tierRank[event.gate.minTier]) return false
+    }
+    
+    return true
+  }).map(event => {
+    const daysLeft = getDaysLeft(event.endDate)
+    return {
+      ...event,
+      closesIn: daysLeft > 0 ? `${daysLeft} days` : 'Ended',
+    }
+  })
+
+  // Separate by status
+  const liveEvents = qualifiedEvents.filter(e => e.status === 'live')
+  const upcomingEvents = qualifiedEvents.filter(e => e.status === 'upcoming')
   
+  // Check if user has more events to unlock
+  const totalEvents = EVENTS.filter(e => e.status === 'live' || e.status === 'upcoming').length
+  const hasMoreToUnlock = qualifiedEvents.length < totalEvents
+
   return NextResponse.json({
-    events: filteredEvents,
-    total: filteredEvents.length,
+    events: qualifiedEvents,
+    liveEvents,
+    upcomingEvents,
+    total: qualifiedEvents.length,
+    hasMoreToUnlock,
+    userStats: {
+      health: userHealth,
+      xp: userXP,
+      tier: userTier,
+    }
   })
 }
 
-// Claim endpoint
+// Join endpoint
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { eventId, address } = body
-    
+
     if (!eventId || !address) {
       return NextResponse.json({ error: 'eventId and address required' }, { status: 400 })
     }
-    
+
     const event = EVENTS.find(e => e.id === eventId)
     if (!event) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
     }
-    
-    if (event.status !== 'active') {
-      return NextResponse.json({ error: 'Event is not active' }, { status: 400 })
+
+    if (event.status !== 'live') {
+      return NextResponse.json({ error: 'Event is not live' }, { status: 400 })
     }
-    
-    if (event.maxParticipants && event.participants >= event.maxParticipants) {
-      return NextResponse.json({ error: 'Event is full' }, { status: 400 })
+
+    if (event.spots && event.spotsRemaining !== undefined && event.spotsRemaining <= 0) {
+      return NextResponse.json({ error: 'No spots remaining' }, { status: 400 })
     }
-    
+
     let txHash: string | null = null
-    
+
     // Mint SBT on-chain if event has SBT reward and admin key is configured
     if (event.rewards.sbt && ADMIN_KEY) {
       try {
@@ -181,7 +276,7 @@ export async function POST(request: NextRequest) {
           chain: base,
           transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org'),
         })
-        
+
         // Check if user already has an SBT
         const hasSBT = await publicClient.readContract({
           address: REP_CONTRACT as `0x${string}`,
@@ -189,7 +284,7 @@ export async function POST(request: NextRequest) {
           functionName: 'hasSBTFor',
           args: [address as `0x${string}`],
         })
-        
+
         if (!hasSBT) {
           const account = privateKeyToAccount(ADMIN_KEY as `0x${string}`)
           const walletClient = createWalletClient({
@@ -197,32 +292,32 @@ export async function POST(request: NextRequest) {
             chain: base,
             transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org'),
           })
-          
-          // Mint with initial score of 100 (Genesis early adopter bonus)
+
+          // Mint with initial score based on event
+          const initialScore = event.type === 'invite-only' ? 200 : event.type === 'exclusive' ? 150 : 100
           const hash = await walletClient.writeContract({
             address: REP_CONTRACT as `0x${string}`,
             abi: MINT_ABI,
             functionName: 'mintReputation',
-            args: [address as `0x${string}`, BigInt(100)],
+            args: [address as `0x${string}`, BigInt(initialScore)],
           })
-          
+
           txHash = hash
         }
       } catch (mintError) {
         console.error('SBT mint error:', mintError)
-        // Continue even if minting fails - don't block the claim
       }
     }
-    
+
     return NextResponse.json({
       success: true,
-      message: txHash ? 'Reward claimed & SBT minted!' : 'Reward claimed successfully!',
+      message: txHash ? 'Joined & SBT minted!' : 'Successfully joined!',
       rewards: event.rewards,
       txHash: txHash || `0x${Math.random().toString(16).slice(2)}${Math.random().toString(16).slice(2)}`,
       minted: !!txHash,
     })
-    
+
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to claim' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to join' }, { status: 500 })
   }
 }
