@@ -1,4 +1,4 @@
-import { parseEther } from 'viem'
+﻿import { parseEther, parseUnits } from 'viem'
 
 // Swap logic and utilities for Uniswap V3 on Base
 
@@ -12,16 +12,16 @@ export interface SwapParams {
 export const SWAP_ROUTER = '0x2626664c2603336E57B271c5C0b26F421741e481'
 
 // WETH on Base
-const WETH = '0x4200000000000000000000000000000000000006'
+export const WETH = '0x4200000000000000000000000000000000000006'
 
 // Token addresses and their preferred fee tiers on Base
-const TOKEN_CONFIG: Record<string, { fee: number }> = {
-  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { fee: 500 },   // USDC - 0.05% pool
-  '0x4200000000000000000000000000000000000006': { fee: 500 },   // WETH
-  '0x50c5725949a6f0c72e6c4a641f24049a917db0cb': { fee: 3000 },  // DAI - 0.3% pool
+const TOKEN_CONFIG: Record<string, { fee: number; decimals: number }> = {
+  '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913': { fee: 500, decimals: 6 },   // USDC - 0.05% pool
+  '0x4200000000000000000000000000000000000006': { fee: 500, decimals: 18 },  // WETH
+  '0x50c5725949a6f0c72e6c4a641f24049a917db0cb': { fee: 3000, decimals: 18 }, // DAI - 0.3% pool
 }
 
-// SwapRouter02 ABI - note: no deadline in struct, uses different format
+// SwapRouter02 ABI - exactInputSingle for both directions
 export const swapAbi = [
   {
     name: 'exactInputSingle',
@@ -46,6 +46,38 @@ export const swapAbi = [
   }
 ] as const
 
+// ERC20 approve ABI
+export const erc20Abi = [
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' }
+    ],
+    outputs: [{ name: '', type: 'bool' }]
+  },
+  {
+    name: 'allowance',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }]
+  },
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'account', type: 'address' }],
+    outputs: [{ name: '', type: 'uint256' }]
+  }
+] as const
+
+// Build params for ETH -> Token swap
 export function buildSwapParams({
   tokenOut,
   user,
@@ -58,11 +90,8 @@ export function buildSwapParams({
   slippage: number
 }) {
   const amountIn = parseEther(amount)
-  
-  // Get fee tier for the output token (default to 500 = 0.05%)
   const fee = TOKEN_CONFIG[tokenOut.toLowerCase()]?.fee || 500
 
-  // SwapRouter02 struct - NO deadline field
   return {
     tokenIn: WETH as `0x${string}`,
     tokenOut,
@@ -74,20 +103,57 @@ export function buildSwapParams({
   }
 }
 
-export async function getQuote(amount: string) {
+// Build params for Token -> ETH swap
+export function buildTokenToEthParams({
+  tokenIn,
+  user,
+  amount,
+  decimals
+}: {
+  tokenIn: `0x${string}`
+  user: `0x${string}`
+  amount: string
+  decimals: number
+}) {
+  const amountIn = parseUnits(amount, decimals)
+  const fee = TOKEN_CONFIG[tokenIn.toLowerCase()]?.fee || 500
+
+  return {
+    tokenIn,
+    tokenOut: WETH as `0x${string}`,
+    fee,
+    recipient: user,
+    amountIn,
+    amountOutMinimum: 0n,
+    sqrtPriceLimitX96: 0n
+  }
+}
+
+export async function getQuote(amount: string, isReversed: boolean = false, decimals: number = 18) {
   if (!amount || Number(amount) <= 0) {
     return null
   }
 
-  // Rough ETH/USDC estimate (~$3000 per ETH)
   const ethPrice = 3000
-  const output = (Number(amount) * ethPrice * 0.995).toFixed(2)
 
-  return {
-    input: amount,
-    output,
-    priceImpact: '<0.1%',
-    fee: '0.05%'
+  if (isReversed) {
+    // Token -> ETH: divide by ETH price
+    const output = (Number(amount) / ethPrice * 0.995).toFixed(6)
+    return {
+      input: amount,
+      output,
+      priceImpact: '<0.1%',
+      fee: '0.05%'
+    }
+  } else {
+    // ETH -> Token
+    const output = (Number(amount) * ethPrice * 0.995).toFixed(2)
+    return {
+      input: amount,
+      output,
+      priceImpact: '<0.1%',
+      fee: '0.05%'
+    }
   }
 }
 

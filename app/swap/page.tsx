@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount, useWalletClient, useChainId, useBalance } from 'wagmi'
-import { formatEther } from 'viem'
+import { useAccount, useWalletClient, useChainId, useBalance, useReadContract } from 'wagmi'
+import { formatEther, formatUnits, parseUnits } from 'viem'
 import { AppShell } from '@/components/AppShell'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { WalletConnect } from '@/components/WalletConnect'
 import { ShareTrade } from '@/components/ShareTrade'
-import { buildSwapParams, SWAP_ROUTER, swapAbi, getQuote } from '@/lib/swap'
+import { buildSwapParams, buildTokenToEthParams, SWAP_ROUTER, WETH, swapAbi, erc20Abi, getQuote } from '@/lib/swap'
 
 const TOKENS = [
   { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, icon: '' },
@@ -35,10 +35,35 @@ export default function SwapPage() {
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [isReversed, setIsReversed] = useState(false)
+  const [approving, setApproving] = useState(false)
 
   const wrongNetwork = chainId !== 8453
   const ethBalance = balanceData ? Number(formatEther(balanceData.value)).toFixed(4) : '0.0000'
-  const hasInsufficientBalance = balanceData && amount ? Number(amount) > Number(formatEther(balanceData.value)) : false
+  const hasInsufficientBalance = !isReversed && balanceData && amount ? Number(amount) > Number(formatEther(balanceData.value)) : false
+
+  // Get token balance for reversed swaps
+  const { data: tokenBalance } = useReadContract({
+    address: selectedToken.address as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: address ? [address] : undefined,
+  })
+
+  // Get allowance for token swaps
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
+    address: selectedToken.address as `0x${string}`,
+    abi: erc20Abi,
+    functionName: 'allowance',
+    args: address ? [address, SWAP_ROUTER as `0x${string}`] : undefined,
+  })
+
+  const tokenBalanceFormatted = tokenBalance 
+    ? Number(formatUnits(tokenBalance as bigint, selectedToken.decimals)).toFixed(4) 
+    : '0.0000'
+
+  const needsApproval = isReversed && amount && allowance !== undefined
+    ? parseUnits(amount, selectedToken.decimals) > (allowance as bigint)
+    : false
 
   useEffect(() => {
     if (!amount || Number(amount) <= 0) {
@@ -48,20 +73,44 @@ export default function SwapPage() {
 
     const fetchQuote = async () => {
       setLoading(true)
-      const q = await getQuote(amount)
+      const q = await getQuote(amount, isReversed, selectedToken.decimals)
       setQuote(q)
       setLoading(false)
     }
 
     const timer = setTimeout(fetchQuote, 300)
     return () => clearTimeout(timer)
-  }, [amount, selectedToken])
+  }, [amount, selectedToken, isReversed])
 
   const handleSwapDirection = () => {
     setIsReversed(!isReversed)
     // Clear values when reversing
     setAmount('')
     setQuote(null)
+  }
+
+  const handleApprove = async () => {
+    if (!walletClient || !address) return
+    
+    setApproving(true)
+    setError('')
+    
+    try {
+      const approveAmount = parseUnits(amount, selectedToken.decimals)
+      const hash = await walletClient.writeContract({
+        address: selectedToken.address as `0x${string}`,
+        abi: erc20Abi,
+        functionName: 'approve',
+        args: [SWAP_ROUTER as `0x${string}`, approveAmount * 2n] // Approve 2x for buffer
+      })
+      
+      // Wait a moment then refetch
+      setTimeout(() => refetchAllowance(), 3000)
+    } catch (e: any) {
+      setError(e?.shortMessage || e?.message || 'Approval failed')
+    } finally {
+      setApproving(false)
+    }
   }
 
   const handleSwap = async () => {
@@ -75,35 +124,54 @@ export default function SwapPage() {
       return
     }
 
-    if (isReversed) {
-      setError('Token  ETH swaps coming soon!')
-      return
-    }
-
     setError('')
     setPending(true)
     setTxHash(null)
 
     try {
-      const params = buildSwapParams({
-        tokenOut: selectedToken.address as `0x${string}`,
-        user: address,
-        amount,
-        slippage
-      })
+      if (isReversed) {
+        // Token -> ETH swap
+        const params = buildTokenToEthParams({
+          tokenIn: selectedToken.address as `0x${string}`,
+          user: address,
+          amount,
+          decimals: selectedToken.decimals
+        })
 
-      const hash = await walletClient.writeContract({
-        address: SWAP_ROUTER as `0x${string}`,
-        abi: swapAbi,
-        functionName: 'exactInputSingle',
-        args: [params],
-        value: params.amountIn
-      })
+        const hash = await walletClient.writeContract({
+          address: SWAP_ROUTER as `0x${string}`,
+          abi: swapAbi,
+          functionName: 'exactInputSingle',
+          args: [params]
+        })
 
-      setTxHash(hash)
+        setTxHash(hash)
+      } else {
+        // ETH -> Token swap
+        const params = buildSwapParams({
+          tokenOut: selectedToken.address as `0x${string}`,
+          user: address,
+          amount,
+          slippage
+        })
+
+        const hash = await walletClient.writeContract({
+          address: SWAP_ROUTER as `0x${string}`,
+          abi: swapAbi,
+          functionName: 'exactInputSingle',
+          args: [params],
+          value: params.amountIn
+        })
+
+        setTxHash(hash)
+      }
+      
       setAmount('')
       setQuote(null)
-      setTimeout(() => refetchBalance(), 2000)
+      setTimeout(() => {
+        refetchBalance()
+        refetchAllowance()
+      }, 2000)
     } catch (e: any) {
       console.error('Swap failed:', e)
       setError(e?.shortMessage || e?.message || 'Swap failed')
@@ -136,12 +204,14 @@ export default function SwapPage() {
         <div className="bg-black/50 rounded-xl p-4 mb-2">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-zinc-500">You pay</p>
-            {isConnected && !isReversed && (
+            {isConnected && (
               <button
-                onClick={() => setAmount(ethBalance)}
+                onClick={() => setAmount(isReversed ? tokenBalanceFormatted : ethBalance)}
                 className="text-xs text-zinc-400 hover:text-white transition"
               >
-                Balance: <span className="text-blue-400">{ethBalance} ETH</span>
+                Balance: <span className="text-blue-400">
+                  {isReversed ? `${tokenBalanceFormatted} ${selectedToken.symbol}` : `${ethBalance} ETH`}
+                </span>
               </button>
             )}
           </div>
@@ -229,15 +299,8 @@ export default function SwapPage() {
           </div>
         </div>
 
-        {/* Reversed Warning */}
-        {isReversed && (
-          <div className="mb-4 p-3 rounded-xl bg-yellow-900/20 border border-yellow-500/20 text-xs text-yellow-300">
-             Token  ETH swaps coming soon! Switch back to swap ETH for tokens.
-          </div>
-        )}
-
         {/* Quote Details */}
-        {quote && !isReversed && (
+        {quote && (
           <div className="bg-zinc-900/50 rounded-xl p-3 mb-4 text-xs space-y-2">
             <div className="flex justify-between text-zinc-400">
               <span>Price Impact</span>
@@ -274,19 +337,28 @@ export default function SwapPage() {
           </div>
         </div>
 
+        {/* Approval Button for Token -> ETH swaps */}
+        {isReversed && needsApproval && (
+          <button
+            onClick={handleApprove}
+            disabled={approving || !amount}
+            className="w-full py-3 mb-3 rounded-xl text-sm font-semibold bg-gradient-to-b from-yellow-500 to-yellow-600 shadow-lg active:scale-[0.97] transition disabled:opacity-50"
+          >
+            {approving ? '⏳ Approving...' : `Approve ${selectedToken.symbol}`}
+          </button>
+        )}
+
         {/* Swap Button */}
         <Button
           onClick={handleSwap}
-          disabled={!isConnected || !amount || pending || wrongNetwork || hasInsufficientBalance || isReversed}
+          disabled={!isConnected || !amount || pending || wrongNetwork || hasInsufficientBalance || (isReversed && needsApproval)}
         >
           {!isConnected
             ? 'Connect Wallet'
             : wrongNetwork
             ? 'Switch to Base'
-            : isReversed
-            ? 'Coming Soon'
             : hasInsufficientBalance
-            ? 'Insufficient ETH Balance'
+            ? `Insufficient ${isReversed ? selectedToken.symbol : 'ETH'} Balance`
             : pending
             ? ' Confirming...'
             : 'Swap'}
