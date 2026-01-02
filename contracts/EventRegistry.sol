@@ -5,29 +5,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title EventRegistry
- * @notice On-chain event tracking for Baseline campaigns
- * @dev Stores events, claims, and participant data on-chain
+ * @notice Simplified on-chain event tracking for Baseline campaigns
  */
 contract EventRegistry is Ownable {
     enum EventStatus { Active, Upcoming, Ended }
-    enum EventType { Launch, Challenge, EarlySupporter, Partner }
-    
-    struct EventRewards {
-        bool sbt;
-        uint256 xp;
-        address token;
-        uint256 tokenAmount;
-    }
     
     struct Event {
         string title;
-        string description;
-        EventType eventType;
         EventStatus status;
-        EventRewards rewards;
+        uint256 xpReward;
+        bool sbtReward;
         uint256 participants;
         uint256 maxParticipants;
-        uint256 startTime;
         uint256 endTime;
         bool exists;
     }
@@ -36,12 +25,10 @@ contract EventRegistry is Ownable {
     mapping(bytes32 => mapping(address => bool)) public hasClaimed;
     bytes32[] public eventIds;
     
-    // Reference to ReputationSBT for minting
     address public reputationSBT;
     
     event EventCreated(bytes32 indexed eventId, string title);
     event EventClaimed(bytes32 indexed eventId, address indexed user, uint256 xp);
-    event EventStatusChanged(bytes32 indexed eventId, EventStatus status);
     
     constructor(address _reputationSBT) Ownable(msg.sender) {
         reputationSBT = _reputationSBT;
@@ -50,33 +37,21 @@ contract EventRegistry is Ownable {
     function createEvent(
         string calldata id,
         string calldata title,
-        string calldata description,
-        EventType eventType,
-        bool sbtReward,
         uint256 xpReward,
-        address tokenReward,
-        uint256 tokenAmount,
+        bool sbtReward,
         uint256 maxParticipants,
-        uint256 startTime,
         uint256 endTime
     ) external onlyOwner {
         bytes32 eventId = keccak256(abi.encodePacked(id));
-        require(!events[eventId].exists, "Event already exists");
+        require(!events[eventId].exists, "Event exists");
         
         events[eventId] = Event({
             title: title,
-            description: description,
-            eventType: eventType,
-            status: block.timestamp >= startTime ? EventStatus.Active : EventStatus.Upcoming,
-            rewards: EventRewards({
-                sbt: sbtReward,
-                xp: xpReward,
-                token: tokenReward,
-                tokenAmount: tokenAmount
-            }),
+            status: EventStatus.Active,
+            xpReward: xpReward,
+            sbtReward: sbtReward,
             participants: 0,
             maxParticipants: maxParticipants,
-            startTime: startTime,
             endTime: endTime,
             exists: true
         });
@@ -87,62 +62,42 @@ contract EventRegistry is Ownable {
     
     function claim(bytes32 eventId) external {
         Event storage evt = events[eventId];
-        require(evt.exists, "Event does not exist");
-        require(evt.status == EventStatus.Active, "Event not active");
-        require(!hasClaimed[eventId][msg.sender], "Already claimed");
-        require(
-            evt.maxParticipants == 0 || evt.participants < evt.maxParticipants,
-            "Event full"
-        );
+        require(evt.exists, "Not found");
+        require(evt.status == EventStatus.Active, "Not active");
+        require(!hasClaimed[eventId][msg.sender], "Claimed");
+        require(evt.maxParticipants == 0 || evt.participants < evt.maxParticipants, "Full");
         
         hasClaimed[eventId][msg.sender] = true;
         evt.participants++;
         
-        // Mint SBT if reward includes it
-        if (evt.rewards.sbt && reputationSBT != address(0)) {
-            // Call ReputationSBT.mintReputation(user, 100)
+        if (evt.sbtReward && reputationSBT != address(0)) {
             (bool success, ) = reputationSBT.call(
                 abi.encodeWithSignature("mintReputation(address,uint256)", msg.sender, 100)
             );
-            // Don't revert if mint fails (user might already have SBT)
-            success; // Silence unused variable warning
+            success;
         }
         
-        emit EventClaimed(eventId, msg.sender, evt.rewards.xp);
+        emit EventClaimed(eventId, msg.sender, evt.xpReward);
     }
     
-    function updateEventStatus(bytes32 eventId, EventStatus status) external onlyOwner {
-        require(events[eventId].exists, "Event does not exist");
+    function updateStatus(bytes32 eventId, EventStatus status) external onlyOwner {
         events[eventId].status = status;
-        emit EventStatusChanged(eventId, status);
     }
     
-    function setReputationSBT(address _reputationSBT) external onlyOwner {
-        reputationSBT = _reputationSBT;
+    function setReputationSBT(address _sbt) external onlyOwner {
+        reputationSBT = _sbt;
     }
     
-    // View functions
     function getEvent(bytes32 eventId) external view returns (
         string memory title,
-        string memory description,
-        EventType eventType,
         EventStatus status,
-        uint256 participants,
-        uint256 maxParticipants,
+        uint256 xpReward,
         bool sbtReward,
-        uint256 xpReward
+        uint256 participants,
+        uint256 maxParticipants
     ) {
-        Event memory evt = events[eventId];
-        return (
-            evt.title,
-            evt.description,
-            evt.eventType,
-            evt.status,
-            evt.participants,
-            evt.maxParticipants,
-            evt.rewards.sbt,
-            evt.rewards.xp
-        );
+        Event memory e = events[eventId];
+        return (e.title, e.status, e.xpReward, e.sbtReward, e.participants, e.maxParticipants);
     }
     
     function hasUserClaimed(bytes32 eventId, address user) external view returns (bool) {
@@ -150,14 +105,12 @@ contract EventRegistry is Ownable {
     }
     
     function getActiveEvents() external view returns (bytes32[] memory) {
-        uint256 activeCount = 0;
+        uint256 count = 0;
         for (uint i = 0; i < eventIds.length; i++) {
-            if (events[eventIds[i]].status == EventStatus.Active) {
-                activeCount++;
-            }
+            if (events[eventIds[i]].status == EventStatus.Active) count++;
         }
         
-        bytes32[] memory active = new bytes32[](activeCount);
+        bytes32[] memory active = new bytes32[](count);
         uint256 j = 0;
         for (uint i = 0; i < eventIds.length; i++) {
             if (events[eventIds[i]].status == EventStatus.Active) {

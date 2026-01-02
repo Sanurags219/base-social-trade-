@@ -1,13 +1,17 @@
 // Deploy XPTracker, TraderRegistry, EventRegistry contracts
-import { createWalletClient, createPublicClient, http, parseAbi } from 'viem';
+import { createWalletClient, createPublicClient, http } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { base } from 'viem/chains';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import solc from 'solc';
+import dotenv from 'dotenv';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load .env.local
+dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
 // Existing deployed contracts
 const DEPLOYED = {
@@ -15,10 +19,10 @@ const DEPLOYED = {
   BSTN: '0x4a3213e1f9d0372f359ce11d11960218e2e04340',
 };
 
-// Load private key
-const PRIVATE_KEY = process.env.PRIVATE_KEY;
+// Load private key from .env.local
+const PRIVATE_KEY = process.env.PRIVATE_KEY_DEPLOYER;
 if (!PRIVATE_KEY) {
-  console.error('❌ PRIVATE_KEY environment variable required');
+  console.error('❌ PRIVATE_KEY_DEPLOYER not found in .env.local');
   process.exit(1);
 }
 
@@ -34,6 +38,20 @@ const walletClient = createWalletClient({
   chain: base,
   transport: http('https://mainnet.base.org'),
 });
+
+// OpenZeppelin import resolver
+function findImports(importPath) {
+  try {
+    // Handle @openzeppelin imports
+    if (importPath.startsWith('@openzeppelin/')) {
+      const fullPath = path.join(__dirname, '..', 'node_modules', importPath);
+      return { contents: fs.readFileSync(fullPath, 'utf8') };
+    }
+    return { error: `File not found: ${importPath}` };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
 
 function compileContract(contractName) {
   console.log(`📦 Compiling ${contractName}...`);
@@ -59,21 +77,13 @@ function compileContract(contractName) {
     },
   };
   
-  // Write to temp file
-  fs.writeFileSync('solc-input.json', JSON.stringify(input, null, 2));
-  
-  // Compile
-  const result = execSync('solc --standard-json < solc-input.json', {
-    encoding: 'utf8',
-    maxBuffer: 50 * 1024 * 1024,
-  });
-  
-  const output = JSON.parse(result);
+  // Compile using solc JS
+  const output = JSON.parse(solc.compile(JSON.stringify(input), { import: findImports }));
   
   if (output.errors) {
     const errors = output.errors.filter(e => e.severity === 'error');
     if (errors.length > 0) {
-      console.error('Compilation errors:', errors);
+      console.error('Compilation errors:', errors.map(e => e.formattedMessage).join('\n'));
       throw new Error('Compilation failed');
     }
   }
