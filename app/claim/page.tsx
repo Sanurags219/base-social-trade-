@@ -235,7 +235,6 @@ export default function ClaimPage() {
           <Button
             onClick={handleClaimSBT}
             disabled={!address || isPending || hasClaimed || wrongNetwork}
-            className="w-full"
           >
             {isPending ? 'Claiming...' : hasClaimed ? '✅ Already Claimed' : 'Claim SBT (Free + Gas)'}
           </Button>
@@ -290,7 +289,6 @@ export default function ClaimPage() {
           <Button
             onClick={handleClaimDailyXP}
             disabled={!address || isPending || wrongNetwork}
-            className="w-full"
           >
             {isPending ? 'Claiming...' : 'Claim Daily XP (Free + Gas)'}
           </Button>
