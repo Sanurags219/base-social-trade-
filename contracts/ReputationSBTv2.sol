@@ -1,4 +1,4 @@
-﻿// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -22,7 +22,6 @@ contract ReputationSBT is ERC721, Ownable {
 
     constructor() ERC721("Baseline Reputation", "BREP") Ownable(msg.sender) {}
 
-    // Public claim - 1 per wallet
     function claim() external {
         require(!hasClaimed[msg.sender], "Already claimed");
         require(tokenIdCounter < MAX_SUPPLY, "Max supply reached");
@@ -39,7 +38,6 @@ contract ReputationSBT is ERC721, Ownable {
         emit SBTClaimed(msg.sender, tokenIdCounter, INITIAL_SCORE);
     }
 
-    // Owner can update reputation score
     function updateScore(address user, uint256 newScore) external onlyOwner {
         require(hasClaimed[user], "User has no SBT");
         require(newScore <= 1000, "Score max 1000");
@@ -53,7 +51,6 @@ contract ReputationSBT is ERC721, Ownable {
         emit ReputationUpdated(user, oldScore, newScore);
     }
 
-    // View functions
     function getReputation(address user) external view returns (uint256 score, uint256 lastUpdated) {
         if (!hasClaimed[user]) return (0, 0);
         Reputation memory rep = reputation[user];
@@ -68,7 +65,6 @@ contract ReputationSBT is ERC721, Ownable {
         return tokenIdCounter;
     }
 
-    // Soulbound: disable transfers
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
         require(from == address(0) || to == address(0), "SBT: non-transferable");
