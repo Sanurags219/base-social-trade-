@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     siteName: 'Baseline',
     images: [
       {
-        url: 'https://base-social-trade.vercel.app/og-image.png',
+        url: 'https://base-social-trade.vercel.app/og-image.png?v=2',
         width: 1200,
         height: 630,
       },
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   other: {
     'fc:frame': 'vNext',
-    'fc:frame:image': 'https://base-social-trade.vercel.app/og-image.png',
+    'fc:frame:image': 'https://base-social-trade.vercel.app/og-image.png?v=2',
     'fc:miniapp': 'true',
     'fc:miniapp:name': 'Baseline',
     'fc:miniapp:description': 'Know your onchain baseline — portfolio, health score & reputation.',
@@ -54,4 +54,5 @@ export default function RootLayout({
     </html>
   )
 }
+
 

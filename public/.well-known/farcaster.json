@@ -8,11 +8,11 @@
     "version": "1",
     "name": "Baseline",
     "iconUrl": "https://base-social-trade.vercel.app/icon.png",
-    "splashImageUrl": "https://base-social-trade.vercel.app/og-image.png",
+    "splashImageUrl": "https://base-social-trade.vercel.app/og-image.png?v=2",
     "splashBackgroundColor": "#05060A",
     "homeUrl": "https://base-social-trade.vercel.app",
     "webhookUrl": "https://base-social-trade.vercel.app/api/webhook",
-    "imageUrl": "https://base-social-trade.vercel.app/og-image.png",
+    "imageUrl": "https://base-social-trade.vercel.app/og-image.png?v=2",
     "screenshotUrls": [
       "https://base-social-trade.vercel.app/screenshots/portfolio.png",
       "https://base-social-trade.vercel.app/screenshots/swap.png",
