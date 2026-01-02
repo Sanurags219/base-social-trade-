@@ -1,14 +1,14 @@
-import './globals.css'
+ï»¿import './globals.css'
 import { Providers } from './providers'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Baseline',
-  description: 'Know your onchain baseline — portfolio, health score, reputation & events on Base.',
+  description: 'Know your onchain baseline â€” portfolio, health score, reputation & events on Base.',
   metadataBase: new URL('https://base-social-trade.vercel.app'),
   openGraph: {
     title: 'Baseline',
-    description: 'Know your onchain baseline — portfolio, health score & reputation on Base.',
+    description: 'Know your onchain baseline â€” portfolio, health score & reputation on Base.',
     url: 'https://base-social-trade.vercel.app',
     siteName: 'Baseline',
     images: [
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     'fc:frame:image': 'https://base-social-trade.vercel.app/og-image.png',
     'fc:miniapp': 'true',
     'fc:miniapp:name': 'Baseline',
-    'fc:miniapp:description': 'Know your onchain baseline — portfolio, health score & reputation.',
+    'fc:miniapp:description': 'Know your onchain baseline â€” portfolio, health score & reputation.',
     'fc:miniapp:url': 'https://base-social-trade.vercel.app',
     'fc:miniapp:icon': 'https://base-social-trade.vercel.app/icon.png',
   },
@@ -54,3 +54,4 @@ export default function RootLayout({
     </html>
   )
 }
+
