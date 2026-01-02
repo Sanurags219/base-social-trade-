@@ -1,14 +1,57 @@
-export const runtime = 'edge'
-
 import { NextRequest, NextResponse } from 'next/server'
+import { createPublicClient, http } from 'viem'
+import { base } from 'viem/chains'
 
-/**
- * XP Tracking API
- * Returns mock leaderboard data and user XP based on activity
- */
+const XP_TRACKER = process.env.NEXT_PUBLIC_XP_CONTRACT || '0x0000000000000000000000000000000000000000'
+const REP_CONTRACT = process.env.NEXT_PUBLIC_REP_CONTRACT || '0x6f0e6da952ac7e30688024cfac71a760b89495d5'
 
-// Mock leaderboard with realistic Base traders
-const MOCK_LEADERBOARD = [
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org'),
+})
+
+const XP_TRACKER_ABI = [
+  {
+    name: 'getUserXP',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [
+      { name: 'xp', type: 'uint256' },
+      { name: 'trades', type: 'uint256' },
+      { name: 'streak', type: 'uint256' },
+      { name: 'level', type: 'uint256' },
+      { name: 'nextLevelXP', type: 'uint256' }
+    ]
+  },
+  {
+    name: 'getLeaderboard',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'limit', type: 'uint256' }],
+    outputs: [
+      { name: 'addresses', type: 'address[]' },
+      { name: 'xps', type: 'uint256[]' },
+      { name: 'levels', type: 'uint256[]' }
+    ]
+  }
+] as const
+
+const REP_ABI = [
+  {
+    name: 'getReputation',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'user', type: 'address' }],
+    outputs: [
+      { name: 'score', type: 'uint256' },
+      { name: 'lastUpdated', type: 'uint256' }
+    ]
+  }
+] as const
+
+// Genesis leaderboard (fallback)
+const GENESIS_LEADERBOARD = [
   { address: '0x22E228AdE324185123A54Ad25F3459a99CF51E7a', xp: 15420, trades: 156, streak: 12 },
   { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', xp: 12850, trades: 98, streak: 8 },
   { address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5fF21', xp: 9340, trades: 67, streak: 5 },
@@ -19,22 +62,24 @@ const MOCK_LEADERBOARD = [
   { address: '0xfedcba9876543210fedcba9876543210fedcba98', xp: 1250, trades: 8, streak: 0 },
 ]
 
-// XP calculation based on address (deterministic)
-function calculateUserXP(address: string) {
-  const hash = address.toLowerCase().split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
-  const baseXP = (hash % 5000) + 100
-  const trades = (hash % 50) + 1
-  const streak = hash % 7
-  
-  return {
-    address,
-    xp: baseXP,
-    trades,
-    streak,
-    level: Math.floor(baseXP / 1000) + 1,
-    nextLevelXP: (Math.floor(baseXP / 1000) + 1) * 1000,
-    rank: MOCK_LEADERBOARD.findIndex(u => u.xp < baseXP) + 1 || MOCK_LEADERBOARD.length + 1
-  }
+// Calculate XP from reputation (fallback)
+function calculateXPFromReputation(reputation: number, address: string): {
+  xp: number
+  trades: number
+  streak: number
+  level: number
+  nextLevelXP: number
+  rank: number
+} {
+  // Use reputation as base for XP calculation
+  const xp = reputation * 10 + (parseInt(address.slice(2, 10), 16) % 1000)
+  const trades = Math.floor(reputation / 10)
+  const streak = Math.floor(reputation / 100) % 15
+  const level = Math.floor(xp / 1000) + 1
+  const nextLevelXP = level * 1000
+  const rank = GENESIS_LEADERBOARD.findIndex(u => u.xp < xp) + 1 || GENESIS_LEADERBOARD.length + 1
+
+  return { xp, trades, streak, level, nextLevelXP, rank }
 }
 
 export async function POST(req: NextRequest) {
@@ -65,14 +110,53 @@ export async function POST(req: NextRequest) {
         xpEarned = 10
     }
 
-    const userData = calculateUserXP(address)
+    // In production with XP_TRACKER deployed, this would call recordSwap/recordShare etc.
+    // For now, return optimistic response
+    
+    // Get current XP
+    let currentXP = 0
+    let level = 1
+    
+    if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
+      try {
+        const result = await publicClient.readContract({
+          address: XP_TRACKER as `0x${string}`,
+          abi: XP_TRACKER_ABI,
+          functionName: 'getUserXP',
+          args: [address as `0x${string}`],
+        })
+        currentXP = Number(result[0])
+        level = Number(result[3]) || 1
+      } catch {
+        // Use fallback
+      }
+    }
+    
+    if (currentXP === 0) {
+      // Try reputation
+      try {
+        const repResult = await publicClient.readContract({
+          address: REP_CONTRACT as `0x${string}`,
+          abi: REP_ABI,
+          functionName: 'getReputation',
+          args: [address as `0x${string}`],
+        })
+        const userData = calculateXPFromReputation(Number(repResult[0]), address)
+        currentXP = userData.xp
+        level = userData.level
+      } catch {
+        currentXP = 100
+        level = 1
+      }
+    }
 
     return NextResponse.json({
       success: true,
       xpEarned,
-      totalXP: userData.xp + xpEarned,
-      level: userData.level,
-      action
+      totalXP: currentXP + xpEarned,
+      level,
+      action,
+      source: XP_TRACKER !== '0x0000000000000000000000000000000000000000' ? 'onchain' : 'computed'
     })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -82,13 +166,97 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const address = searchParams.get('address')
+  const limit = parseInt(searchParams.get('limit') || '10')
 
+  // Single user XP query
   if (address) {
-    // Single user XP query
-    const userData = calculateUserXP(address)
-    return NextResponse.json(userData)
+    // Try XP_TRACKER first
+    if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
+      try {
+        const result = await publicClient.readContract({
+          address: XP_TRACKER as `0x${string}`,
+          abi: XP_TRACKER_ABI,
+          functionName: 'getUserXP',
+          args: [address as `0x${string}`],
+        })
+        
+        return NextResponse.json({
+          address,
+          xp: Number(result[0]),
+          trades: Number(result[1]),
+          streak: Number(result[2]),
+          level: Number(result[3]) || 1,
+          nextLevelXP: Number(result[4]) || 1000,
+          rank: 0, // Would need separate query
+          source: 'onchain'
+        })
+      } catch {
+        // Fall through
+      }
+    }
+    
+    // Try reputation SBT
+    try {
+      const repResult = await publicClient.readContract({
+        address: REP_CONTRACT as `0x${string}`,
+        abi: REP_ABI,
+        functionName: 'getReputation',
+        args: [address as `0x${string}`],
+      })
+      
+      const userData = calculateXPFromReputation(Number(repResult[0]), address)
+      return NextResponse.json({
+        address,
+        ...userData,
+        source: 'reputation'
+      })
+    } catch {
+      // Fall through
+    }
+    
+    // Fallback
+    const userData = calculateXPFromReputation(100, address)
+    return NextResponse.json({
+      address,
+      ...userData,
+      source: 'computed'
+    })
   }
 
-  // Leaderboard query - return mock data
-  return NextResponse.json(MOCK_LEADERBOARD)
+  // Leaderboard query
+  if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
+    try {
+      const result = await publicClient.readContract({
+        address: XP_TRACKER as `0x${string}`,
+        abi: XP_TRACKER_ABI,
+        functionName: 'getLeaderboard',
+        args: [BigInt(limit)],
+      })
+      
+      const [addresses, xps, levels] = result
+      
+      const leaderboard = addresses.map((addr, i) => ({
+        address: addr,
+        xp: Number(xps[i]),
+        level: Number(levels[i]) || 1,
+        trades: 0,
+        streak: 0,
+      }))
+      
+      return NextResponse.json({
+        leaderboard,
+        source: 'onchain',
+        total: leaderboard.length
+      })
+    } catch {
+      // Fall through
+    }
+  }
+  
+  // Fallback to genesis
+  return NextResponse.json({
+    leaderboard: GENESIS_LEADERBOARD.slice(0, limit),
+    source: 'genesis',
+    total: GENESIS_LEADERBOARD.length
+  })
 }

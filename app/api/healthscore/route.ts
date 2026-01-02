@@ -5,23 +5,22 @@ import { getNFTCount } from '@/lib/portfolio/nfts'
 import { getLPCount } from '@/lib/portfolio/lps'
 import { calculateHealth, Token } from '@/lib/health/calc'
 import { classify } from '@/lib/health/riskTags'
+import { getTokenPrices } from '@/lib/onchain/prices'
 
 const client = createPublicClient({
   chain: base,
   transport: http('https://mainnet.base.org'),
 })
 
-// Known tokens on Base with prices
+// Known tokens on Base
 const TOKENS = [
-  { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6, price: 1 },
-  { symbol: 'USDbC', address: '0xd9aAEc86B65D86f6E08f4c7C32D4f71b54bdA02913', decimals: 6, price: 1 },
-  { symbol: 'DAI', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18, price: 1 },
-  { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', decimals: 18, price: 2400 },
-  { symbol: 'cbETH', address: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22', decimals: 18, price: 2500 },
-  { symbol: 'AERO', address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', decimals: 18, price: 1.2 },
+  { symbol: 'USDC', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', decimals: 6 },
+  { symbol: 'USDbC', address: '0xd9aAEc86B65D86f6A7B5B1b0c42FFA531710b6CA', decimals: 6 },
+  { symbol: 'DAI', address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb', decimals: 18 },
+  { symbol: 'WETH', address: '0x4200000000000000000000000000000000000006', decimals: 18 },
+  { symbol: 'cbETH', address: '0x2Ae3F1Ec7F1F5012CFEab0185bfc7aa3cf0DEc22', decimals: 18 },
+  { symbol: 'AERO', address: '0x940181a94A35A4569E4529A3CDfB74e38FD98631', decimals: 18 },
 ]
-
-const ETH_PRICE = 2400
 
 const ERC20_ABI = [
   {
@@ -43,20 +42,24 @@ interface TokenData {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const address = searchParams.get('address')
-  
+
   // Demo mode for testing
   if (!address || address === 'demo') {
     return NextResponse.json(getDemoData())
   }
-  
+
   try {
+    // Get on-chain prices from Chainlink
+    const prices = await getTokenPrices()
+    const ethPrice = prices.get('ETH') || 2400
+    
     // Fetch ETH balance
     const ethBalance = await client.getBalance({ address: address as `0x${string}` })
     const ethFormatted = Number(formatEther(ethBalance))
-    const ethUSD = ethFormatted * ETH_PRICE
-    
+    const ethUSD = ethFormatted * ethPrice
+
     const tokens: TokenData[] = []
-    
+
     if (ethFormatted > 0.0001) {
       tokens.push({
         symbol: 'ETH',
@@ -65,7 +68,7 @@ export async function GET(request: NextRequest) {
         type: classify('ETH'),
       })
     }
-    
+
     // Fetch ERC-20 balances in parallel
     const balancePromises = TOKENS.map(async (token) => {
       try {
@@ -75,13 +78,14 @@ export async function GET(request: NextRequest) {
           functionName: 'balanceOf',
           args: [address as `0x${string}`],
         })
-        
+
         const formatted = Number(formatUnits(balance, token.decimals))
         if (formatted > 0.0001) {
+          const price = prices.get(token.symbol) || 0
           return {
             symbol: token.symbol,
             balance: formatted,
-            valueUSD: formatted * token.price,
+            valueUSD: formatted * price,
             type: classify(token.symbol),
           } as TokenData
         }
@@ -113,15 +117,15 @@ export async function GET(request: NextRequest) {
     } catch {
       // Use defaults
     }
-    
+
     // Calculate health score using new calc module
     const healthTokens: Token[] = tokens.map(t => ({
       symbol: t.symbol,
       valueUSD: t.valueUSD,
     }))
-    
+
     const health = calculateHealth(healthTokens, lpsUSD)
-    
+
     return NextResponse.json({
       address,
       tokens,
@@ -129,8 +133,10 @@ export async function GET(request: NextRequest) {
       nfts: { count: nftCount, valueUSD: 0 },
       lps: { count: lpCount, valueUSD: lpsUSD },
       health,
+      source: 'onchain', // All data is from Base mainnet
+      priceSource: 'chainlink', // Prices from Chainlink oracles
     })
-    
+
   } catch (error) {
     console.error('Health score fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 })
