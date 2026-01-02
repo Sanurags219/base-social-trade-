@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
 import { Card } from '@/components/ui/Card'
 import { WalletConnect } from '@/components/WalletConnect'
+import { HealthBreakdown } from '@/components/HealthBreakdown'
 
 interface TokenData {
   symbol: string
@@ -79,46 +80,6 @@ function HealthScoreRing({ score, size = 96 }: { score: number; size?: number })
   )
 }
 
-// Score Breakdown Bar
-function BreakdownBar({ 
-  label, 
-  value, 
-  maxValue, 
-  icon 
-}: { 
-  label: string
-  value: number
-  maxValue: number
-  icon: string
-}) {
-  const percentage = (value / maxValue) * 100
-  
-  const getBarColor = () => {
-    if (percentage >= 80) return 'bg-green-500'
-    if (percentage >= 60) return 'bg-blue-500'
-    if (percentage >= 40) return 'bg-yellow-500'
-    return 'bg-red-500'
-  }
-  
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-center text-xs">
-        <span className="text-zinc-400 flex items-center gap-1.5">
-          <span>{icon}</span>
-          {label}
-        </span>
-        <span className="text-zinc-300 font-medium">{value}/{maxValue}</span>
-      </div>
-      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-        <div 
-          className={`h-full rounded-full transition-all duration-700 ${getBarColor()}`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  )
-}
-
 // Token Icon Helper
 function TokenIcon({ symbol, type }: { symbol: string; type: string }) {
   if (symbol === 'ETH' || symbol === 'WETH') return <span>⟠</span>
@@ -139,7 +100,6 @@ export default function PortfolioPage() {
   const { address, isConnected } = useAccount()
   const [data, setData] = useState<PortfolioData | null>(null)
   const [loading, setLoading] = useState(false)
-  const [showBreakdown, setShowBreakdown] = useState(false)
   const [xpToast, setXpToast] = useState<{ show: boolean; xp: number; message: string }>({ show: false, xp: 0, message: '' })
   const [shareLoading, setShareLoading] = useState(false)
   
@@ -259,56 +219,25 @@ export default function PortfolioPage() {
               </span>
             </div>
             
-            {/* Toggle Breakdown */}
-            <button
-              onClick={() => setShowBreakdown(!showBreakdown)}
-              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition flex items-center justify-center gap-1 py-3 mt-4 border-t border-zinc-800"
-            >
-              {showBreakdown ? 'Hide' : 'Show'} Score Breakdown
-              <svg 
-                className={`w-3 h-3 transition-transform ${showBreakdown ? 'rotate-180' : ''}`} 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {/* Score Ring + Breakdown - Only when expanded */}
-            {showBreakdown && (
-              <div className="pt-4 border-t border-zinc-800">
-                <div className="flex justify-center mb-4">
-                  <HealthScoreRing score={data.health.score} size={96} />
-                </div>
-                <div className="space-y-4">
-                  <BreakdownBar 
-                    label="Diversification" 
-                    value={data.health.breakdown.diversification} 
-                    maxValue={30}
-                    icon="📊"
-                  />
-                  <BreakdownBar 
-                    label="Stablecoin Ratio" 
-                    value={data.health.breakdown.stableRatio} 
-                    maxValue={25}
-                    icon="💵"
-                  />
-                  <BreakdownBar 
-                    label="Risk Exposure" 
-                    value={data.health.breakdown.riskExposure} 
-                    maxValue={25}
-                    icon="🛡️"
-                  />
-                  <BreakdownBar 
-                    label="Concentration" 
-                    value={data.health.breakdown.concentration} 
-                    maxValue={20}
-                    icon="🎯"
-                  />
-                </div>
+            {/* Score Breakdown - Native details element */}
+            <details className="mt-4 border-t border-zinc-800 pt-3">
+              <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300 transition">
+                View score breakdown
+              </summary>
+              
+              <div className="flex justify-center mt-4">
+                <HealthScoreRing score={data.health.score} size={96} />
               </div>
-            )}
+              
+              <HealthBreakdown
+                items={[
+                  { label: 'Diversification', value: data.health.breakdown.diversification, max: 30 },
+                  { label: 'Stablecoin Ratio', value: data.health.breakdown.stableRatio, max: 25 },
+                  { label: 'Risk Exposure', value: data.health.breakdown.riskExposure, max: 25 },
+                  { label: 'Asset Concentration', value: data.health.breakdown.concentration, max: 20 }
+                ]}
+              />
+            </details>
           </Card>
           
           {/* Tokens - Cleaner list with breathing room */}
