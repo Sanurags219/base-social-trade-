@@ -34,39 +34,38 @@ interface PortfolioData {
   health: HealthData
 }
 
-// Health Score Ring Component
-function HealthScoreRing({ score, status }: { score: number; status: string }) {
-  const circumference = 2 * Math.PI * 45
+// Health Score Ring Component - Smaller, supporting role
+function HealthScoreRing({ score, size = 96 }: { score: number; size?: number }) {
+  const radius = (size / 2) - 6
+  const circumference = 2 * Math.PI * radius
   const offset = circumference - (score / 100) * circumference
   
   const getColor = () => {
-    if (score >= 80) return '#22c55e'
-    if (score >= 65) return '#3b82f6'
-    if (score >= 50) return '#eab308'
-    if (score >= 35) return '#f97316'
-    return '#ef4444'
+    if (score >= 80) return '#22c55e' // Green - Healthy
+    if (score >= 50) return '#eab308' // Yellow - Needs Attention
+    return '#f97316' // Orange - High Risk (no red)
   }
   
   const color = getColor()
   
   return (
-    <div className="relative flex flex-col items-center">
-      <svg className="w-36 h-36 -rotate-90">
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg className="w-full h-full -rotate-90">
         <circle
-          cx="72"
-          cy="72"
-          r="45"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
           fill="none"
           stroke="#27272a"
-          strokeWidth="8"
+          strokeWidth="6"
         />
         <circle
-          cx="72"
-          cy="72"
-          r="45"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
           fill="none"
           stroke={color}
-          strokeWidth="8"
+          strokeWidth="6"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
@@ -74,8 +73,7 @@ function HealthScoreRing({ score, status }: { score: number; status: string }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold">{score}</span>
-        <span className="text-sm text-zinc-500">/ 100</span>
+        <span className="text-2xl font-semibold">{score}</span>
       </div>
     </div>
   )
@@ -207,11 +205,17 @@ export default function PortfolioPage() {
   }, [data, address])
   
   const getStatusColor = (status: string) => {
-    if (status === 'Healthy') return 'text-green-400'
-    if (status === 'Good') return 'text-blue-400'
-    if (status === 'Moderate') return 'text-yellow-400'
-    if (status === 'At Risk') return 'text-orange-400'
-    return 'text-red-400'
+    if (status === 'Healthy') return 'text-green-400 bg-green-500/10'
+    if (status === 'Good') return 'text-green-400 bg-green-500/10'
+    if (status === 'Moderate') return 'text-yellow-400 bg-yellow-500/10'
+    if (status === 'At Risk') return 'text-orange-400 bg-orange-500/10'
+    return 'text-orange-400 bg-orange-500/10'
+  }
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'At Risk') return 'Needs Attention'
+    if (status === 'Critical') return 'High Risk'
+    return status
   }
   
   return (
@@ -220,7 +224,7 @@ export default function PortfolioPage() {
       
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Portfolio</h1>
+        <h1 className="text-lg font-semibold">Portfolio</h1>
         {!isConnected && (
           <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">
             Demo Mode
@@ -237,30 +241,28 @@ export default function PortfolioPage() {
         </Card>
       ) : data ? (
         <>
-          {/* Main Health Score Card */}
+          {/* Main Health Card - Restructured: Value → Status → Score */}
           <Card>
-            <div className="text-center py-2">
-              <p className="text-sm text-zinc-400 mb-4">Wallet Health</p>
-              
-              <HealthScoreRing 
-                score={data.health.score} 
-                status={data.health.status} 
-              />
-              
-              <p className={`text-lg font-semibold mt-3 ${getStatusColor(data.health.status)}`}>
-                {data.health.status}
-              </p>
-              
-              <p className="text-2xl font-bold mt-2">
-                {formatUSD(data.totalValueUSD)}
-              </p>
-              <p className="text-xs text-zinc-500">Total Portfolio Value</p>
+            {/* Total Portfolio Value - Primary */}
+            <p className="text-xs text-zinc-400">Total Portfolio Value</p>
+            <div className="text-3xl font-semibold mt-1">
+              {formatUSD(data.totalValueUSD)}
+            </div>
+            
+            {/* Health Status + Score - Supporting */}
+            <div className="flex items-center gap-2 mt-3">
+              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(data.health.status)}`}>
+                {getStatusLabel(data.health.status)}
+              </span>
+              <span className="text-xs text-zinc-500">
+                Health score: {data.health.score} / 100
+              </span>
             </div>
             
             {/* Toggle Breakdown */}
             <button
               onClick={() => setShowBreakdown(!showBreakdown)}
-              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition flex items-center justify-center gap-1 py-3 mt-2 border-t border-zinc-800"
+              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition flex items-center justify-center gap-1 py-3 mt-4 border-t border-zinc-800"
             >
               {showBreakdown ? 'Hide' : 'Show'} Score Breakdown
               <svg 
@@ -273,59 +275,61 @@ export default function PortfolioPage() {
               </svg>
             </button>
             
-            {/* Breakdown */}
+            {/* Score Ring + Breakdown - Only when expanded */}
             {showBreakdown && (
-              <div className="space-y-4 pt-3 border-t border-zinc-800">
-                <BreakdownBar 
-                  label="Diversification" 
-                  value={data.health.breakdown.diversification} 
-                  maxValue={30}
-                  icon="📊"
-                />
-                <BreakdownBar 
-                  label="Stablecoin Ratio" 
-                  value={data.health.breakdown.stableRatio} 
-                  maxValue={25}
-                  icon="💵"
-                />
-                <BreakdownBar 
-                  label="Risk Exposure" 
-                  value={data.health.breakdown.riskExposure} 
-                  maxValue={25}
-                  icon="🛡️"
-                />
-                <BreakdownBar 
-                  label="Concentration" 
-                  value={data.health.breakdown.concentration} 
-                  maxValue={20}
-                  icon="🎯"
-                />
+              <div className="pt-4 border-t border-zinc-800">
+                <div className="flex justify-center mb-4">
+                  <HealthScoreRing score={data.health.score} size={96} />
+                </div>
+                <div className="space-y-4">
+                  <BreakdownBar 
+                    label="Diversification" 
+                    value={data.health.breakdown.diversification} 
+                    maxValue={30}
+                    icon="📊"
+                  />
+                  <BreakdownBar 
+                    label="Stablecoin Ratio" 
+                    value={data.health.breakdown.stableRatio} 
+                    maxValue={25}
+                    icon="💵"
+                  />
+                  <BreakdownBar 
+                    label="Risk Exposure" 
+                    value={data.health.breakdown.riskExposure} 
+                    maxValue={25}
+                    icon="🛡️"
+                  />
+                  <BreakdownBar 
+                    label="Concentration" 
+                    value={data.health.breakdown.concentration} 
+                    maxValue={20}
+                    icon="🎯"
+                  />
+                </div>
               </div>
             )}
           </Card>
           
-          {/* Tokens */}
+          {/* Tokens - Cleaner list with breathing room */}
           <Card className="mt-4">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold flex items-center gap-2">
-                <span>💰</span>
-                Tokens
-              </h3>
+              <h3 className="text-sm font-medium text-zinc-300">Tokens</h3>
               <span className="text-xs text-zinc-500">{data.tokens.length} assets</span>
             </div>
             
             {data.tokens.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-4">No tokens found</p>
+              <p className="text-xs text-zinc-500 text-center py-4">No tokens found</p>
             ) : (
               <div className="space-y-3">
                 {data.tokens.map((token, i) => (
-                  <div key={i} className="flex items-center justify-between">
+                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-lg">
                         <TokenIcon symbol={token.symbol} type={token.type} />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{token.symbol}</p>
+                        <p className="text-sm font-medium">{token.symbol}</p>
                         <p className="text-xs text-zinc-500">
                           {token.balance < 0.0001 
                             ? token.balance.toExponential(2) 
@@ -334,7 +338,7 @@ export default function PortfolioPage() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-sm">{formatUSD(token.valueUSD)}</p>
+                      <p className="text-sm font-medium">{formatUSD(token.valueUSD)}</p>
                       <p className="text-xs text-zinc-500">
                         {((token.valueUSD / data.totalValueUSD) * 100).toFixed(1)}%
                       </p>
@@ -348,14 +352,11 @@ export default function PortfolioPage() {
           {/* NFTs */}
           <Card className="mt-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold flex items-center gap-2">
-                <span>🖼</span>
-                NFTs
-              </h3>
+              <h3 className="text-sm font-medium text-zinc-300">NFTs</h3>
               <span className="text-xs text-zinc-500">{data.nfts.count} items</span>
             </div>
             {data.nfts.count > 0 ? (
-              <p className="text-sm text-zinc-400 mt-2">
+              <p className="text-xs text-zinc-400 mt-2">
                 Floor value: {formatUSD(data.nfts.valueUSD)}
               </p>
             ) : (
@@ -366,10 +367,7 @@ export default function PortfolioPage() {
           {/* LP Positions */}
           <Card className="mt-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold flex items-center gap-2">
-                <span>💧</span>
-                LP Positions
-              </h3>
+              <h3 className="text-sm font-medium text-zinc-300">LP Positions</h3>
               <span className="text-xs text-zinc-500">{data.lps.count} positions</span>
             </div>
             {data.lps.count > 0 ? (
@@ -386,7 +384,7 @@ export default function PortfolioPage() {
             <button
               onClick={handleShare}
               disabled={shareLoading}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-8 py-3 rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-8 py-3 rounded-xl transition-all active:scale-95"
             >
               {shareLoading ? 'Sharing...' : 'Share My Score'}
             </button>

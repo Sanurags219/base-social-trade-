@@ -78,8 +78,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#0B0F1A] border-t border-zinc-800" style={{ zIndex: 9999 }}>
+      {/* Bottom Navigation - Soft, minimal */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#05060A] border-t border-white/5" style={{ zIndex: 9999 }}>
         <div className="max-w-md mx-auto flex justify-around py-2 px-1">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 prefetch={true}
                 className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[56px] ${
                   isActive 
-                    ? 'text-blue-400 bg-blue-500/10' 
+                    ? 'text-blue-400' 
                     : 'text-zinc-500 hover:text-zinc-300'
                 }`}
               >
