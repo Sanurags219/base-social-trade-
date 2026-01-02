@@ -1,18 +1,19 @@
-import './globals.css'
+﻿import './globals.css'
 import { Providers } from './providers'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'BSTN Social Trade',
-  description: 'Social trading, XP, reputation & credit on Base',
+  title: 'Baseline',
+  description: 'Know your onchain baseline — portfolio, health score, reputation & events on Base.',
+  metadataBase: new URL('https://base-social-trade.vercel.app'),
   openGraph: {
-    title: 'BSTN Social Trade',
-    description: 'Swap, share trades, earn XP on Base',
+    title: 'Baseline',
+    description: 'Know your onchain baseline — portfolio, health score & reputation on Base.',
     url: 'https://base-social-trade.vercel.app',
-    siteName: 'BSTN',
+    siteName: 'Baseline',
     images: [
       {
-        url: '/api/og/trade',
+        url: '/api/og/health',
         width: 1200,
         height: 630,
       },
@@ -22,16 +23,21 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'BSTN',
+    title: 'Baseline',
+  },
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
   other: {
     'fc:frame': 'vNext',
-    'fc:frame:image': '/api/og/trade',
+    'fc:frame:image': '/api/og/health',
     'fc:miniapp': 'true',
-    'fc:miniapp:name': 'BSTN Social Trade',
-    'fc:miniapp:description': 'Social trading & onchain reputation on Base',
+    'fc:miniapp:name': 'Baseline',
+    'fc:miniapp:description': 'Know your onchain baseline — portfolio, health score & reputation.',
     'fc:miniapp:url': 'https://base-social-trade.vercel.app',
-    'fc:miniapp:icon': 'https://base-social-trade.vercel.app/icon.svg',
+    'fc:miniapp:icon': 'https://base-social-trade.vercel.app/icon.png',
   },
 }
 
@@ -42,7 +48,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

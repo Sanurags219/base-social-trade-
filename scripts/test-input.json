@@ -1,0 +1,11 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "Test.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\ncontract Test {}"
+    }
+  },
+  "settings": {
+    "outputSelection": { "*": { "*": ["abi", "evm.bytecode.object"] } }
+  }
+}

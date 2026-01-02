@@ -14,11 +14,12 @@ contract ReputationSBT is ERC721, Ownable {
     mapping(address => bool) public hasSBT;
 
     uint256 public tokenIdCounter;
+    uint256 public constant MAX_SUPPLY = 30000;
 
     event ReputationIssued(address indexed user, uint256 score, uint256 timestamp);
     event ReputationUpdated(address indexed user, uint256 oldScore, uint256 newScore, uint256 timestamp);
 
-    constructor() ERC721("Onchain Reputation", "REP") {}
+    constructor() ERC721("Onchain Reputation", "REP") Ownable(msg.sender) {}
 
     // mint or update reputation
     function issueOrUpdate(address user, uint256 score)
@@ -29,6 +30,7 @@ contract ReputationSBT is ERC721, Ownable {
         require(score <= 1000, "Score too high");
 
         if (!hasSBT[user]) {
+            require(tokenIdCounter < MAX_SUPPLY, "Max supply reached");
             tokenIdCounter++;
             _mint(user, tokenIdCounter);
             hasSBT[user] = true;
@@ -62,16 +64,14 @@ contract ReputationSBT is ERC721, Ownable {
         return hasSBT[user];
     }
 
-    // 🔒 Soulbound: disable transfers
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId,
-        uint256
-    ) internal pure override {
-        require(
-            from == address(0) || to == address(0),
-            "SBT: non-transferable"
-        );
+    // Soulbound: disable transfers
+    function _update(address to, uint256 tokenId, address auth)
+        internal
+        override
+        returns (address)
+    {
+        address from = _ownerOf(tokenId);
+        require(from == address(0) || to == address(0), "SBT: non-transferable");
+        return super._update(to, tokenId, auth);
     }
 }

@@ -1,0 +1,21 @@
+{
+  "name": "Baseline",
+  "short_name": "Baseline",
+  "description": "Know your onchain baseline — portfolio, health score, reputation & events on Base.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#05060A",
+  "theme_color": "#0052FF",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "url": "https://base-social-trade.vercel.app",
+  "permissions": {
+    "wallet": true,
+    "notifications": true
+  }
+}

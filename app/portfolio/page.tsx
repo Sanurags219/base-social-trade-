@@ -1,0 +1,432 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useAccount } from 'wagmi'
+import { AppShell } from '@/components/AppShell'
+import { Card } from '@/components/ui/Card'
+import { WalletConnect } from '@/components/WalletConnect'
+
+interface TokenData {
+  symbol: string
+  balance: number
+  valueUSD: number
+  type: string
+}
+
+interface HealthData {
+  score: number
+  status: string
+  breakdown: {
+    diversification: number
+    stableRatio: number
+    riskExposure: number
+    concentration: number
+  }
+  tips?: string[]
+}
+
+interface PortfolioData {
+  address: string
+  tokens: TokenData[]
+  totalValueUSD: number
+  nfts: { count: number; valueUSD: number }
+  lps: { count: number; valueUSD: number }
+  health: HealthData
+}
+
+// Health Score Ring Component
+function HealthScoreRing({ score, status }: { score: number; status: string }) {
+  const circumference = 2 * Math.PI * 45
+  const offset = circumference - (score / 100) * circumference
+  
+  const getColor = () => {
+    if (score >= 80) return '#22c55e'
+    if (score >= 65) return '#3b82f6'
+    if (score >= 50) return '#eab308'
+    if (score >= 35) return '#f97316'
+    return '#ef4444'
+  }
+  
+  const color = getColor()
+  
+  return (
+    <div className="relative flex flex-col items-center">
+      <svg className="w-36 h-36 -rotate-90">
+        <circle
+          cx="72"
+          cy="72"
+          r="45"
+          fill="none"
+          stroke="#27272a"
+          strokeWidth="8"
+        />
+        <circle
+          cx="72"
+          cy="72"
+          r="45"
+          fill="none"
+          stroke={color}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-all duration-1000 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-4xl font-bold">{score}</span>
+        <span className="text-sm text-zinc-500">/ 100</span>
+      </div>
+    </div>
+  )
+}
+
+// Score Breakdown Bar
+function BreakdownBar({ 
+  label, 
+  value, 
+  maxValue, 
+  icon 
+}: { 
+  label: string
+  value: number
+  maxValue: number
+  icon: string
+}) {
+  const percentage = (value / maxValue) * 100
+  
+  const getBarColor = () => {
+    if (percentage >= 80) return 'bg-green-500'
+    if (percentage >= 60) return 'bg-blue-500'
+    if (percentage >= 40) return 'bg-yellow-500'
+    return 'bg-red-500'
+  }
+  
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center text-xs">
+        <span className="text-zinc-400 flex items-center gap-1.5">
+          <span>{icon}</span>
+          {label}
+        </span>
+        <span className="text-zinc-300 font-medium">{value}/{maxValue}</span>
+      </div>
+      <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+        <div 
+          className={`h-full rounded-full transition-all duration-700 ${getBarColor()}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  )
+}
+
+// Token Icon Helper
+function TokenIcon({ symbol, type }: { symbol: string; type: string }) {
+  if (symbol === 'ETH' || symbol === 'WETH') return <span>⟠</span>
+  if (symbol === 'cbETH') return <span>🔵</span>
+  if (type === 'stable') return <span>💵</span>
+  return <span>🪙</span>
+}
+
+// Format USD
+function formatUSD(value: number): string {
+  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`
+  if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`
+  if (value >= 1) return `$${value.toFixed(2)}`
+  return `$${value.toFixed(4)}`
+}
+
+export default function PortfolioPage() {
+  const { address, isConnected } = useAccount()
+  const [data, setData] = useState<PortfolioData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [showBreakdown, setShowBreakdown] = useState(false)
+  const [xpToast, setXpToast] = useState<{ show: boolean; xp: number; message: string }>({ show: false, xp: 0, message: '' })
+  const [shareLoading, setShareLoading] = useState(false)
+  
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true)
+      try {
+        const endpoint = address 
+          ? `/api/healthscore?address=${address}`
+          : '/api/healthscore?address=demo'
+        const res = await fetch(endpoint)
+        if (res.ok) {
+          const result = await res.json()
+          setData(result)
+        }
+      } catch (e) {
+        console.error('Failed to fetch portfolio:', e)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchData()
+  }, [address])
+  
+  const handleShare = useCallback(async () => {
+    if (!data) return
+    
+    setShareLoading(true)
+    
+    const text = `My wallet health score is ${data.health.score}/100 (${data.health.status}) 💪\n\nCheck your wallet health 👇`
+    const url = 'https://base-social-trade.vercel.app/portfolio'
+    
+    // Farcaster share
+    const farcasterUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(url)}`
+    window.open(farcasterUrl, '_blank')
+    
+    // Award XP for sharing
+    try {
+      const res = await fetch('/api/xp/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          address: address || 'anonymous',
+          type: 'health'
+        }),
+      })
+      
+      const result = await res.json()
+      
+      if (result.success) {
+        setXpToast({ show: true, xp: result.xp, message: result.message })
+        setTimeout(() => setXpToast({ show: false, xp: 0, message: '' }), 3000)
+      } else if (result.error) {
+        setXpToast({ show: true, xp: 0, message: result.error })
+        setTimeout(() => setXpToast({ show: false, xp: 0, message: '' }), 3000)
+      }
+    } catch (e) {
+      console.error('Failed to award XP:', e)
+    } finally {
+      setShareLoading(false)
+    }
+  }, [data, address])
+  
+  const getStatusColor = (status: string) => {
+    if (status === 'Healthy') return 'text-green-400'
+    if (status === 'Good') return 'text-blue-400'
+    if (status === 'Moderate') return 'text-yellow-400'
+    if (status === 'At Risk') return 'text-orange-400'
+    return 'text-red-400'
+  }
+  
+  return (
+    <AppShell>
+      <WalletConnect />
+      
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold">Portfolio</h1>
+        {!isConnected && (
+          <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">
+            Demo Mode
+          </span>
+        )}
+      </div>
+      
+      {loading ? (
+        <Card>
+          <div className="text-center py-12">
+            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-zinc-400 text-sm">Analyzing wallet...</p>
+          </div>
+        </Card>
+      ) : data ? (
+        <>
+          {/* Main Health Score Card */}
+          <Card>
+            <div className="text-center py-2">
+              <p className="text-sm text-zinc-400 mb-4">Wallet Health</p>
+              
+              <HealthScoreRing 
+                score={data.health.score} 
+                status={data.health.status} 
+              />
+              
+              <p className={`text-lg font-semibold mt-3 ${getStatusColor(data.health.status)}`}>
+                {data.health.status}
+              </p>
+              
+              <p className="text-2xl font-bold mt-2">
+                {formatUSD(data.totalValueUSD)}
+              </p>
+              <p className="text-xs text-zinc-500">Total Portfolio Value</p>
+            </div>
+            
+            {/* Toggle Breakdown */}
+            <button
+              onClick={() => setShowBreakdown(!showBreakdown)}
+              className="w-full text-xs text-zinc-500 hover:text-zinc-300 transition flex items-center justify-center gap-1 py-3 mt-2 border-t border-zinc-800"
+            >
+              {showBreakdown ? 'Hide' : 'Show'} Score Breakdown
+              <svg 
+                className={`w-3 h-3 transition-transform ${showBreakdown ? 'rotate-180' : ''}`} 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            
+            {/* Breakdown */}
+            {showBreakdown && (
+              <div className="space-y-4 pt-3 border-t border-zinc-800">
+                <BreakdownBar 
+                  label="Diversification" 
+                  value={data.health.breakdown.diversification} 
+                  maxValue={30}
+                  icon="📊"
+                />
+                <BreakdownBar 
+                  label="Stablecoin Ratio" 
+                  value={data.health.breakdown.stableRatio} 
+                  maxValue={25}
+                  icon="💵"
+                />
+                <BreakdownBar 
+                  label="Risk Exposure" 
+                  value={data.health.breakdown.riskExposure} 
+                  maxValue={25}
+                  icon="🛡️"
+                />
+                <BreakdownBar 
+                  label="Concentration" 
+                  value={data.health.breakdown.concentration} 
+                  maxValue={20}
+                  icon="🎯"
+                />
+              </div>
+            )}
+          </Card>
+          
+          {/* Tokens */}
+          <Card className="mt-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <span>💰</span>
+                Tokens
+              </h3>
+              <span className="text-xs text-zinc-500">{data.tokens.length} assets</span>
+            </div>
+            
+            {data.tokens.length === 0 ? (
+              <p className="text-sm text-zinc-500 text-center py-4">No tokens found</p>
+            ) : (
+              <div className="space-y-3">
+                {data.tokens.map((token, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-lg">
+                        <TokenIcon symbol={token.symbol} type={token.type} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{token.symbol}</p>
+                        <p className="text-xs text-zinc-500">
+                          {token.balance < 0.0001 
+                            ? token.balance.toExponential(2) 
+                            : token.balance.toFixed(4)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-sm">{formatUSD(token.valueUSD)}</p>
+                      <p className="text-xs text-zinc-500">
+                        {((token.valueUSD / data.totalValueUSD) * 100).toFixed(1)}%
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+          
+          {/* NFTs */}
+          <Card className="mt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <span>🖼</span>
+                NFTs
+              </h3>
+              <span className="text-xs text-zinc-500">{data.nfts.count} items</span>
+            </div>
+            {data.nfts.count > 0 ? (
+              <p className="text-sm text-zinc-400 mt-2">
+                Floor value: {formatUSD(data.nfts.valueUSD)}
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-600 mt-2">Coming soon</p>
+            )}
+          </Card>
+          
+          {/* LP Positions */}
+          <Card className="mt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold flex items-center gap-2">
+                <span>💧</span>
+                LP Positions
+              </h3>
+              <span className="text-xs text-zinc-500">{data.lps.count} positions</span>
+            </div>
+            {data.lps.count > 0 ? (
+              <p className="text-sm text-zinc-400 mt-2">
+                Total value: {formatUSD(data.lps.valueUSD)}
+              </p>
+            ) : (
+              <p className="text-xs text-zinc-600 mt-2">Coming soon</p>
+            )}
+          </Card>
+          
+          {/* Share Button */}
+          <div className="mt-6 text-center">
+            <button
+              onClick={handleShare}
+              disabled={shareLoading}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:opacity-50 text-white text-sm font-semibold px-8 py-3 rounded-xl transition-all active:scale-95 shadow-lg shadow-blue-500/20"
+            >
+              {shareLoading ? 'Sharing...' : 'Share My Score'}
+            </button>
+            <p className="text-xs text-zinc-500 mt-2">
+              Share on Farcaster • Earn 25 XP
+            </p>
+          </div>
+          
+          {/* XP Toast */}
+          {xpToast.show && (
+            <div className={`fixed top-4 left-1/2 -translate-x-1/2 ${xpToast.xp > 0 ? 'bg-green-600' : 'bg-zinc-700'} text-white px-4 py-2 rounded-xl shadow-lg animate-bounce z-50`}>
+              <span className="font-bold">{xpToast.message}</span>
+            </div>
+          )}
+          
+          {/* Tips from Health Analysis */}
+          {data.health.tips && data.health.tips.length > 0 && (
+            <div className="mt-6 p-4 bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-xl border border-green-500/20">
+              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                <span>💡</span>
+                {data.health.score >= 75 ? 'Portfolio Insights' : 'Improve Your Score'}
+              </h4>
+              <ul className="text-xs text-zinc-400 space-y-1.5">
+                {data.health.tips.map((tip, i) => (
+                  <li key={i} className="flex items-start gap-1.5">
+                    <span className="text-zinc-500">•</span>
+                    <span>{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ) : (
+        <Card>
+          <div className="text-center py-8">
+            <p className="text-zinc-400">Failed to load portfolio</p>
+          </div>
+        </Card>
+      )}
+    </AppShell>
+  )
+}

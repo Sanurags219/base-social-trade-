@@ -1,5 +1,5 @@
 {
-  "name": "base-social-trade",
+  "name": "baseline",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -12,12 +12,21 @@
     "@coinbase/onchainkit": "^1.1.2",
     "@farcaster/miniapp-sdk": "^0.2.1",
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^4.0.3",
+    "@nomicfoundation/hardhat-ignition-ethers": "^3.0.6",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.3",
+    "@openzeppelin/contracts": "^5.0.0",
     "@sentry/nextjs": "^10.32.1",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
     "@uniswap/v3-periphery": "^1.4.4",
+    "chai": "^6.2.2",
     "dotenv": "^17.2.3",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "solc": "^0.8.20",
+    "typechain": "^8.3.2",
     "viem": "^2.43.4",
     "wagmi": "^2.19.5"
   },

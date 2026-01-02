@@ -1,110 +1,123 @@
 'use client'
 
+import { AppShell } from '@/components/AppShell'
 import { CreditDashboard } from '@/components/CreditDashboard'
+import { Card } from '@/components/ui/Card'
 
 export default function CreditPage() {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">💳 Credit System</h1>
-          <p className="text-zinc-400">
-            Borrow power is earned, not deposited. Reputation-based under-collateralized lending.
-          </p>
-        </div>
-
-        {/* Credit Dashboard */}
-        <CreditDashboard />
-
-        {/* Info Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
-          {/* Credit Tiers */}
-          <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-            <h3 className="font-semibold mb-3">📊 Credit Tiers</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span>🟢 Elite (850+)</span>
-                <span className="text-green-400">$5,000</span>
-              </div>
-              <div className="flex justify-between">
-                <span>🔵 Trusted (650-849)</span>
-                <span className="text-blue-400">$1,500</span>
-              </div>
-              <div className="flex justify-between">
-                <span>🟡 Regular (400-649)</span>
-                <span className="text-yellow-400">$300</span>
-              </div>
-              <div className="flex justify-between">
-                <span>🔴 New (&lt;400)</span>
-                <span className="text-red-400">—</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Rules */}
-          <div className="bg-zinc-900 rounded-xl p-4 border border-zinc-800">
-            <h3 className="font-semibold mb-3">⚙️ Loan Rules</h3>
-            <div className="space-y-2 text-sm text-zinc-300">
-              <div>✅ One active loan per wallet</div>
-              <div>✅ 14-day fixed term</div>
-              <div>✅ No interest</div>
-              <div>✅ No leverage or liquidation</div>
-              <div>✅ Late payment = rep penalty</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reputation Impact */}
-        <div className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl p-4 mt-8 border border-blue-500/30">
-          <h3 className="font-semibold mb-3">🧠 How Reputation Affects Credit</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="font-semibold text-green-400 mb-1">✅ Positive Actions</div>
-              <ul className="space-y-1 text-zinc-300">
-                <li>• On-time repayment → +rep</li>
-                <li>• Multiple cycles → tier upgrade</li>
-              </ul>
-            </div>
-            <div>
-              <div className="font-semibold text-red-400 mb-1">❌ Negative Actions</div>
-              <ul className="space-y-1 text-zinc-300">
-                <li>• Late repayment → -rep</li>
-                <li>• Default → credit frozen</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Launch Guardrails */}
-        <div className="bg-zinc-900 rounded-xl p-4 mt-8 border border-zinc-800 text-sm">
-          <h3 className="font-semibold mb-3">🔐 Launch Guardrails (MVP)</h3>
-          <ul className="space-y-2 text-zinc-300">
-            <li>✓ Total TVL capped at $50,000</li>
-            <li>✓ Trusted+ only (650+ reputation)</li>
-            <li>✓ Manual whitelist (first 20 users)</li>
-            <li>✓ Daily monitoring & alerts</li>
-            <li>✓ Gradual rollout to public</li>
-          </ul>
-        </div>
-
-        {/* Why This Matters */}
-        <div className="bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-xl p-4 mt-8 border border-green-500/30">
-          <h3 className="font-semibold mb-2">🚀 Why This Is Huge</h3>
-          <p className="text-sm text-zinc-300">
-            You've built the complete Web3 trust stack:
-          </p>
-          <ul className="mt-3 space-y-1 text-sm text-zinc-300">
-            <li>🔐 On-chain identity (SBT)</li>
-            <li>📊 Trust scoring (reputation)</li>
-            <li>🤝 Social trading (copy trades)</li>
-            <li>💳 Credit without collateral (loans)</li>
-          </ul>
-          <p className="text-xs text-green-400 mt-3">
-            This is what Web3 promises, done responsibly.
-          </p>
-        </div>
+    <AppShell>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold mb-2 flex items-center gap-2">
+          <svg className="w-6 h-6 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          Credit System
+        </h1>
+        <p className="text-sm text-zinc-400">
+          Borrow power is earned, not deposited. Reputation-based under-collateralized lending.
+        </p>
       </div>
-    </div>
+
+      {/* Credit Dashboard */}
+      <CreditDashboard />
+
+      {/* Credit Tiers */}
+      <Card className="mt-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+          Credit Tiers
+        </h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              Elite (850+)
+            </span>
+            <span className="text-green-400 font-medium">$5,000</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              Trusted (650-849)
+            </span>
+            <span className="text-blue-400 font-medium">$1,500</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              Regular (400-649)
+            </span>
+            <span className="text-yellow-400 font-medium">$300</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+              New (&lt;400)
+            </span>
+            <span className="text-zinc-500">—</span>
+          </div>
+        </div>
+      </Card>
+
+      {/* Loan Rules */}
+      <Card className="mt-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          Loan Rules
+        </h3>
+        <div className="space-y-2 text-sm text-zinc-300">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            One active loan per wallet
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            14-day fixed term
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            No interest
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            No leverage or liquidation
+          </div>
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Late payment = rep penalty
+          </div>
+        </div>
+      </Card>
+
+      {/* Wallet Section */}
+      <Card className="mt-4">
+        <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <svg className="w-4 h-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+          </svg>
+          Wallet
+        </h3>
+        <p className="text-sm text-zinc-400">
+          Connect your wallet to view your credit limit and borrow.
+        </p>
+      </Card>
+    </AppShell>
   )
 }

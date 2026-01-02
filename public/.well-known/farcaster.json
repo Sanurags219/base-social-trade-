@@ -1,0 +1,16 @@
+﻿{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjAsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwIn0",
+    "payload": "eyJkb21haW4iOiJiYXNlLXNvY2lhbC10cmFkZS52ZXJjZWwuYXBwIn0",
+    "signature": "MHgwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Baseline",
+    "iconUrl": "https://base-social-trade.vercel.app/icon.png",
+    "splashImageUrl": "https://base-social-trade.vercel.app/opengraph-image",
+    "splashBackgroundColor": "#05060A",
+    "homeUrl": "https://base-social-trade.vercel.app",
+    "webhookUrl": "https://base-social-trade.vercel.app/api/webhook"
+  }
+}
