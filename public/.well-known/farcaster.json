@@ -11,6 +11,11 @@
     "splashImageUrl": "https://base-social-trade.vercel.app/opengraph-image",
     "splashBackgroundColor": "#05060A",
     "homeUrl": "https://base-social-trade.vercel.app",
-    "webhookUrl": "https://base-social-trade.vercel.app/api/webhook"
+    "webhookUrl": "https://base-social-trade.vercel.app/api/webhook",
+    "screenshotUrls": [
+      "https://base-social-trade.vercel.app/screenshots/portfolio.png",
+      "https://base-social-trade.vercel.app/screenshots/swap.png",
+      "https://base-social-trade.vercel.app/screenshots/profile.png"
+    ]
   }
 }
