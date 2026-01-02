@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/Button'
 import { WalletConnect } from '@/components/WalletConnect'
 import Link from 'next/link'
 
-const SBT_CONTRACT = process.env.NEXT_PUBLIC_REP_CONTRACT || '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786'
+// SBT Contract on Base Mainnet
+const SBT_CONTRACT = '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786' as const
 const BASE_CHAIN_ID = 8453
 
 const SBT_ABI = [

@@ -6,8 +6,9 @@ import { AppShell } from '@/components/AppShell'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 
-const SBT_CONTRACT = process.env.NEXT_PUBLIC_REP_CONTRACT || '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786'
-const XP_CONTRACT = process.env.NEXT_PUBLIC_XP_CONTRACT || '0x9d357e2ca64199bb80db0fb356514d1f7e315edd'
+// Contract addresses on Base Mainnet
+const SBT_CONTRACT = '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786' as const
+const XP_CONTRACT = '0x9d357e2ca64199bb80db0fb356514d1f7e315edd' as const
 const BASE_CHAIN_ID = 8453
 
 const SBT_ABI = [
