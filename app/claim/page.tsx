@@ -167,7 +167,7 @@ export default function ClaimPage() {
 
   return (
     <AppShell>
-      <h1 className="text-lg font-semibold mb-4">Claim Rewards</h1>
+      <h1 className="text-lg font-semibold mb-6">Claim Rewards</h1>
 
       {wrongNetwork && (
         <div className="mb-4 rounded-xl bg-red-900/30 border border-red-500/20 px-4 py-3 text-sm text-red-300">
@@ -175,33 +175,33 @@ export default function ClaimPage() {
         </div>
       )}
 
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveTab('sbt')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+          className={`px-4 py-2 rounded-[14px] text-sm font-medium transition ${
             activeTab === 'sbt'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#0052FF] text-white'
               : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
           }`}
         >
-          🏆 Reputation SBT
+          Reputation SBT
         </button>
         <button
           onClick={() => setActiveTab('xp')}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+          className={`px-4 py-2 rounded-[14px] text-sm font-medium transition ${
             activeTab === 'xp'
-              ? 'bg-blue-600 text-white'
+              ? 'bg-[#0052FF] text-white'
               : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
           }`}
         >
-          ⚡ Daily XP
+          Daily XP
         </button>
       </div>
 
       {activeTab === 'sbt' && (
         <Card>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center">
               <span className="text-2xl">🛡️</span>
             </div>
             <div>
@@ -211,20 +211,20 @@ export default function ClaimPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 mb-4">
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className="bg-white/[0.03] rounded-xl p-3">
               <p className="text-xs text-zinc-500">Your Score</p>
-              <p className="text-xl font-bold text-green-400">
+              <p className="text-xl font-semibold text-green-400">
                 {reputation ? Number(reputation[0]) : hasClaimed ? 500 : 0}
               </p>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className="bg-white/[0.03] rounded-xl p-3">
               <p className="text-xs text-zinc-500">Total Minted</p>
-              <p className="text-xl font-bold">{totalSupply?.toString() || '0'} / 30,000</p>
+              <p className="text-xl font-semibold">{totalSupply?.toString() || '0'} / 30,000</p>
             </div>
           </div>
 
-          <div className="bg-zinc-800/30 rounded-lg p-3 mb-4">
-            <p className="text-xs text-zinc-400 mb-2">✨ Benefits</p>
+          <div className="bg-white/[0.03] rounded-xl p-3 mb-4">
+            <p className="text-xs text-zinc-400 mb-2">Benefits</p>
             <ul className="text-sm text-zinc-300 space-y-1">
               <li>• On-chain reputation proof</li>
               <li>• Access to PRO features</li>
@@ -249,7 +249,7 @@ export default function ClaimPage() {
       {activeTab === 'xp' && (
         <Card>
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-xl bg-yellow-500/20 flex items-center justify-center">
               <span className="text-2xl">⚡</span>
             </div>
             <div>
@@ -259,26 +259,26 @@ export default function ClaimPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+            <div className="bg-white/[0.03] rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500">Total XP</p>
-              <p className="text-lg font-bold text-yellow-400">
+              <p className="text-lg font-semibold text-yellow-400">
                 {userXP ? Number(userXP[0]) : 0}
               </p>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+            <div className="bg-white/[0.03] rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500">Level</p>
-              <p className="text-lg font-bold">{userXP ? Number(userXP[3]) : 1}</p>
+              <p className="text-lg font-semibold">{userXP ? Number(userXP[3]) : 1}</p>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+            <div className="bg-white/[0.03] rounded-xl p-3 text-center">
               <p className="text-xs text-zinc-500">Streak</p>
-              <p className="text-lg font-bold text-orange-400">
-                {userXP ? Number(userXP[2]) : 0} 🔥
+              <p className="text-lg font-semibold text-orange-400">
+                {userXP ? Number(userXP[2]) : 0}
               </p>
             </div>
           </div>
 
-          <div className="bg-zinc-800/30 rounded-lg p-3 mb-4">
-            <p className="text-xs text-zinc-400 mb-2">🎯 XP Sources (On-Chain)</p>
+          <div className="bg-white/[0.03] rounded-xl p-3 mb-4">
+            <p className="text-xs text-zinc-400 mb-2">XP Sources (On-Chain)</p>
             <ul className="text-sm text-zinc-300 space-y-1">
               <li>• Daily check-in: +100 XP</li>
               <li>• Swap tokens: +10 XP + volume bonus</li>

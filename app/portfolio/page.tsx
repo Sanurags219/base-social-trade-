@@ -183,7 +183,7 @@ export default function PortfolioPage() {
       <WalletConnect />
       
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="text-lg font-semibold">Portfolio</h1>
         {!isConnected && (
           <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">
@@ -313,7 +313,7 @@ export default function PortfolioPage() {
             <button
               onClick={handleShare}
               disabled={shareLoading}
-              className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium px-8 py-3 rounded-xl transition-all active:scale-95"
+              className="bg-[#0052FF] hover:bg-[#0047E1] disabled:opacity-50 text-white text-sm font-medium px-8 py-3 rounded-[14px] transition-all active:scale-[0.98]"
             >
               {shareLoading ? 'Sharing...' : 'Share My Score'}
             </button>
@@ -331,8 +331,8 @@ export default function PortfolioPage() {
           
           {/* Tips from Health Analysis */}
           {data.health.tips && data.health.tips.length > 0 && (
-            <div className="mt-6 p-4 bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-xl border border-green-500/20">
-              <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+            <div className="mt-6 p-4 bg-white/[0.03] rounded-xl border border-white/5">
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                 <span>💡</span>
                 {data.health.score >= 75 ? 'Portfolio Insights' : 'Improve Your Score'}
               </h4>

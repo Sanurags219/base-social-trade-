@@ -57,11 +57,11 @@ export default function LeaderboardPage() {
     <AppShell>
       <WalletConnect />
       
-      <h1 className="text-xl font-bold mb-4"> XP Leaderboard</h1>
+      <h1 className="text-lg font-semibold mb-6">XP Leaderboard</h1>
 
       {/* My Stats */}
       {isConnected && myXP && (
-        <div className="mb-4 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/20 rounded-2xl p-4">
+        <div className="mb-4 bg-white/[0.03] border border-white/5 rounded-2xl p-4">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm text-zinc-400">Your Stats</span>
             <span className="text-xs bg-blue-600 px-2 py-1 rounded-full">
@@ -89,7 +89,7 @@ export default function LeaderboardPage() {
             </div>
             <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
+                className="h-full bg-blue-500 rounded-full"
                 style={{ width: `${(myXP.xp % 1000) / 10}%` }}
               />
             </div>
@@ -99,7 +99,7 @@ export default function LeaderboardPage() {
 
       {/* How to Earn XP */}
       <Card>
-        <p className="text-sm font-medium mb-2"> How to Earn XP</p>
+        <p className="text-sm font-medium mb-2">How to Earn XP</p>
         <div className="grid grid-cols-2 gap-2 text-xs text-zinc-400">
           <div className="flex items-center gap-2">
             <span className="text-green-400">+10-100</span> Swap tokens
@@ -131,12 +131,12 @@ export default function LeaderboardPage() {
         ) : (
           users.map((u, i) => {
             const isMe = address?.toLowerCase() === u.address.toLowerCase()
-            const medal = i === 0 ? '' : i === 1 ? '' : i === 2 ? '' : `#${i + 1}`
+            const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`
             
             return (
               <div 
                 key={u.address}
-                className={`bg-[#0B0F1A] border rounded-2xl p-4 ${isMe ? 'border-blue-500/50 bg-blue-900/20' : 'border-zinc-800/60'}`}
+                className={`bg-white/[0.03] border rounded-2xl p-4 ${isMe ? 'border-blue-500/30' : 'border-white/5'}`}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-3">

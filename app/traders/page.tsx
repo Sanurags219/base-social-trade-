@@ -105,8 +105,8 @@ export default function TradersPage() {
     <AppShell>
       <WalletConnect />
 
-      <h1 className="text-xl font-bold mb-2">👥 Top Traders</h1>
-      <p className="text-sm text-zinc-400 mb-4">
+      <h1 className="text-lg font-semibold mb-2">Top Traders</h1>
+      <p className="text-xs text-zinc-400 mb-6">
         Copy successful traders and mirror their strategies
       </p>
 
@@ -119,25 +119,25 @@ export default function TradersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-6">
         {(['all', 'elite', 'trusted'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
               filter === f
-                ? 'bg-blue-600 text-white'
+                ? 'bg-[#0052FF] text-white'
                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
             }`}
           >
-            {f === 'all' ? 'All' : f === 'elite' ? '👑 Elite' : '⭐ Trusted+'}
+            {f === 'all' ? 'All' : f === 'elite' ? 'Elite' : 'Trusted+'}
           </button>
         ))}
       </div>
 
       {/* Info Card */}
       <Card>
-        <p className="text-sm font-medium mb-2">🔐 Copy Trading Security</p>
+        <p className="text-sm font-medium mb-2">Copy Trading Security</p>
         <div className="text-xs text-zinc-400 space-y-1">
           <p>✅ Non-custodial - you own your vault</p>
           <p>✅ Reputation-gated - only trusted traders</p>
@@ -160,7 +160,7 @@ export default function TradersPage() {
           filteredTraders.map((trader, i) => (
             <div
               key={trader.address}
-              className="bg-[#0B0F1A] border border-zinc-800/60 rounded-2xl p-4"
+              className="bg-white/[0.03] border border-white/5 rounded-2xl p-4"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -183,36 +183,36 @@ export default function TradersPage() {
               </div>
 
               <div className="grid grid-cols-4 gap-2 text-center text-xs mb-3">
-                <div className="bg-black/30 rounded-lg py-2">
-                  <p className="text-zinc-400">Rep</p>
-                  <p className="font-semibold text-blue-400">{trader.reputation}</p>
+                <div className="bg-white/[0.03] rounded-xl py-2">
+                  <p className="text-zinc-500">Rep</p>
+                  <p className="font-medium text-blue-400">{trader.reputation}</p>
                 </div>
-                <div className="bg-black/30 rounded-lg py-2">
-                  <p className="text-zinc-400">Trades</p>
-                  <p className="font-semibold">{trader.trades}</p>
+                <div className="bg-white/[0.03] rounded-xl py-2">
+                  <p className="text-zinc-500">Trades</p>
+                  <p className="font-medium">{trader.trades}</p>
                 </div>
-                <div className="bg-black/30 rounded-lg py-2">
-                  <p className="text-zinc-400">Win %</p>
-                  <p className="font-semibold text-green-400">{trader.winRate}%</p>
+                <div className="bg-white/[0.03] rounded-xl py-2">
+                  <p className="text-zinc-500">Win %</p>
+                  <p className="font-medium text-green-400">{trader.winRate}%</p>
                 </div>
-                <div className="bg-black/30 rounded-lg py-2">
-                  <p className="text-zinc-400">Copiers</p>
-                  <p className="font-semibold">{trader.copiers}</p>
+                <div className="bg-white/[0.03] rounded-xl py-2">
+                  <p className="text-zinc-500">Copiers</p>
+                  <p className="font-medium">{trader.copiers}</p>
                 </div>
               </div>
 
               <div className="flex gap-2">
                 <Link
                   href={`/trader/${trader.address}`}
-                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-center py-2.5 rounded-xl text-sm font-semibold transition"
+                  className="flex-1 bg-[#0052FF] hover:bg-[#0047E1] text-center py-2.5 rounded-[14px] text-sm font-medium transition"
                 >
-                  🤖 Copy Trade
+                  Copy Trade
                 </Link>
                 <Link
                   href={`/reputation/${trader.address}`}
-                  className="px-4 bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-xl text-sm font-semibold transition"
+                  className="px-4 bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-[14px] text-sm font-medium transition"
                 >
-                  📊
+                  View
                 </Link>
               </div>
             </div>
@@ -222,16 +222,16 @@ export default function TradersPage() {
 
       {/* Become a Trader CTA */}
       {isConnected && (
-        <div className="mt-6 bg-gradient-to-r from-blue-900/30 to-purple-900/30 border border-blue-500/20 rounded-2xl p-4">
-          <p className="font-medium mb-1">🚀 Become a Top Trader</p>
+        <div className="mt-6 bg-white/[0.03] border border-white/5 rounded-2xl p-4">
+          <p className="text-sm font-medium mb-1">Become a Top Trader</p>
           <p className="text-xs text-zinc-400 mb-3">
             Build your reputation by trading consistently. 650+ rep unlocks copy trading.
           </p>
           <Link
             href={`/reputation/${address}`}
-            className="block text-center bg-white/10 hover:bg-white/20 py-2 rounded-xl text-sm font-medium transition"
+            className="block text-center bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-[14px] text-sm font-medium transition"
           >
-            View Your Reputation →
+            View Your Reputation
           </Link>
         </div>
       )}

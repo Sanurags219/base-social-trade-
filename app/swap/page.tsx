@@ -325,9 +325,9 @@ export default function SwapPage() {
               <button
                 key={s}
                 onClick={() => setSlippage(s)}
-                className={`py-2.5 rounded-xl text-xs font-medium transition ${
+                className={`py-2.5 rounded-[14px] text-xs font-medium transition ${
                   slippage === s
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-[#0052FF] text-white'
                     : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                 }`}
               >
@@ -342,7 +342,7 @@ export default function SwapPage() {
           <button
             onClick={handleApprove}
             disabled={approving || !amount}
-            className="w-full py-3 mb-3 rounded-xl text-sm font-semibold bg-gradient-to-b from-yellow-500 to-yellow-600 shadow-lg active:scale-[0.97] transition disabled:opacity-50"
+            className="w-full py-3 mb-3 rounded-[14px] text-sm font-semibold bg-yellow-500 hover:bg-yellow-600 active:scale-[0.98] transition disabled:opacity-50"
           >
             {approving ? '⏳ Approving...' : `Approve ${selectedToken.symbol}`}
           </button>
@@ -354,14 +354,14 @@ export default function SwapPage() {
           disabled={!isConnected || !amount || pending || wrongNetwork || hasInsufficientBalance || (isReversed && needsApproval)}
         >
           {!isConnected
-            ? 'Connect Wallet'
+            ? 'Connect'
             : wrongNetwork
             ? 'Switch to Base'
             : hasInsufficientBalance
-            ? `Insufficient ${isReversed ? selectedToken.symbol : 'ETH'} Balance`
+            ? `Insufficient ${isReversed ? selectedToken.symbol : 'ETH'}`
             : pending
-            ? ' Confirming...'
-            : 'Swap'}
+            ? 'Confirming...'
+            : 'Confirm Swap'}
         </Button>
 
         {/* Error */}

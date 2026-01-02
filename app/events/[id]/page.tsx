@@ -226,7 +226,7 @@ export default function EventDetailPage() {
       <Card>
         <div className="text-center py-4">
           <EventTypeIcon type={event.type} />
-          <h1 className="text-xl font-bold mt-3">{event.title}</h1>
+          <h1 className="text-lg font-semibold mt-3">{event.title}</h1>
           <p className="text-sm text-zinc-400 mt-2 max-w-sm mx-auto">{event.description}</p>
           
           {/* Status */}
@@ -258,7 +258,7 @@ export default function EventDetailPage() {
       
       {/* Rewards */}
       <Card className="mt-4">
-        <h3 className="font-semibold mb-3 flex items-center gap-2">
+        <h3 className="text-sm font-medium mb-3">
           <span>🎁</span>
           Rewards
         </h3>
@@ -296,7 +296,7 @@ export default function EventDetailPage() {
       {/* Requirements */}
       {event.requirements && event.requirements.length > 0 && (
         <Card className="mt-4">
-          <h3 className="font-semibold mb-3 flex items-center gap-2">
+          <h3 className="text-sm font-medium mb-3">
             <span>✅</span>
             Requirements
           </h3>
@@ -344,7 +344,7 @@ export default function EventDetailPage() {
           <Card>
             <div className="text-center py-4">
               <span className="text-4xl">🎉</span>
-              <h3 className="font-bold text-lg mt-2">Reward Claimed!</h3>
+              <h3 className="font-semibold text-lg mt-2">Reward Claimed!</h3>
               <p className="text-sm text-zinc-400 mt-1">
                 Congratulations! Your Genesis SBT is now in your wallet.
               </p>
@@ -363,7 +363,7 @@ export default function EventDetailPage() {
               <div className="mt-4">
                 <button
                   onClick={handleShare}
-                  className="bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium px-6 py-2.5 rounded-xl transition-all active:scale-95"
+                  className="bg-[#0052FF] hover:bg-[#0047E1] text-white text-sm font-medium px-6 py-2.5 rounded-[14px] transition-all active:scale-[0.98]"
                 >
                   Share on Farcaster
                 </button>

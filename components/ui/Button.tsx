@@ -14,11 +14,11 @@ export function Button({
       className="
         w-full
         py-3
-        rounded-xl
+        rounded-[14px]
         text-sm font-semibold
-        bg-gradient-to-b from-[#2563EB] to-[#1D4ED8]
-        shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_20px_50px_-15px_rgba(37,99,235,1)]
-        active:scale-[0.97]
+        bg-[#0052FF]
+        hover:bg-[#0047E1]
+        active:scale-[0.98]
         transition
         disabled:opacity-50
       "

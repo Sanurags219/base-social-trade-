@@ -168,13 +168,8 @@ export default function EventsPage() {
   
   return (
     <AppShell>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold flex items-center gap-2">
-          <svg className="w-5 h-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          Events
-        </h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-lg font-semibold">Events</h1>
         {activeCount > 0 && (
           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
             {activeCount} Active
@@ -183,14 +178,14 @@ export default function EventsPage() {
       </div>
       
       {/* Filter Tabs */}
-      <div className="flex gap-2 mb-4">
+      <div className="flex gap-2 mb-6">
         {(['all', 'active', 'upcoming'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`text-xs px-3 py-1.5 rounded-lg transition ${
+            className={`text-xs px-3 py-1.5 rounded-full transition ${
               filter === f 
-                ? 'bg-blue-600 text-white' 
+                ? 'bg-[#0052FF] text-white' 
                 : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
             }`}
           >
@@ -224,8 +219,8 @@ export default function EventsPage() {
       )}
       
       {/* Info */}
-      <div className="mt-6 p-4 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-xl border border-blue-500/20">
-        <h3 className="font-semibold text-sm mb-2 flex items-center gap-2">
+      <div className="mt-6 p-4 bg-white/[0.03] rounded-xl border border-white/5">
+        <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
           <span>💡</span>
           How Events Work
         </h3>
