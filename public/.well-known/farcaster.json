@@ -22,12 +22,17 @@
   "miniapp": {
     "version": "1",
     "name": "Baseline",
-    "description": "Track portfolio health, DeFi, NFTs & earn XP",
+    "description": "Track portfolio health, DeFi, NFTs & earn XP. 40% BSTN airdrop reserved for community.",
     "iconUrl": "https://base-social-trade.vercel.app/icon.png",
     "homeUrl": "https://base-social-trade.vercel.app",
     "base": {
       "chains": ["base"],
       "capabilities": ["wallet", "notifications", "sharing"]
-    }
+    },
+    "screenshotUrls": [
+      "https://base-social-trade.vercel.app/screenshots/baseline_ss1.png",
+      "https://base-social-trade.vercel.app/screenshots/baseline_ss2.png",
+      "https://base-social-trade.vercel.app/screenshots/baseline_ss3.png"
+    ]
   }
 }

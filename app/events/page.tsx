@@ -1,10 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAccount, useWriteContract, useReadContract, useChainId } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
+import { AirdropShareBanner } from '@/components/AirdropBanner'
 import { Gift, Share2, FileCheck, UserPlus, Star, ChevronRight, Zap, Check, Shield, Award, Sparkles, ArrowLeftRight, Users, Coins } from 'lucide-react'
 
 // Contract addresses on Base Mainnet
@@ -701,7 +702,11 @@ export default function EventsPage() {
             </div>
           </div>
 
-          {/* Farcaster Info Section */}
+                    {/* Airdrop Share Banner */}
+          <div className="mx-4">
+            <AirdropShareBanner xp={totalXP} />
+          </div>
+{/* Farcaster Info Section */}
           <div className="mx-4 p-4 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 border border-purple-500/20">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
@@ -729,3 +734,4 @@ export default function EventsPage() {
     </AppShell>
   )
 }
+

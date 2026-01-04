@@ -1,11 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
 import { PortfolioSecurityHero } from '@/components/PortfolioSecurityHero'
 import { ReviewSuggestedNavigator } from '@/components/ReviewSuggestedNavigator'
-import { AirdropShareBanner } from '@/components/AirdropShareBanner'
+import { AirdropBanner, AirdropShareBanner } from '@/components/AirdropBanner'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
 import { 
@@ -56,6 +56,7 @@ export default function PortfolioPage() {
   const [data, setData] = useState<PortfolioData | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Overview')
+  const [userXP, setUserXP] = useState(0)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,6 +77,20 @@ export default function PortfolioPage() {
     }
     fetchData()
   }, [address])
+
+  // Fetch XP from localStorage or API
+  useEffect(() => {
+    const storedXP = localStorage.getItem('user_xp')
+    if (storedXP) {
+      setUserXP(parseInt(storedXP, 10))
+    } else {
+      // Default XP based on activity
+      const txCount = parseInt(localStorage.getItem('swap_tx_count') || '0', 10)
+      const copyTrades = localStorage.getItem('copy_traded') ? 1 : 0
+      setUserXP(txCount * 10 + copyTrades * 100)
+    }
+  }, [])
+
 
   const scoreData = useMemo(() => {
     if (!data?.tokens) return null
@@ -102,12 +117,12 @@ export default function PortfolioPage() {
   }, [scoreData, score])
 
   const stats = useMemo(() => {
-    if (!data) return { growth: '+0%', trades: 0, totalValue: '$0', holdings: 0 }
+    if (!data) return { growth: '+0%', trades: 0, profit: '$0', holdings: 0 }
     const growth = '+24%'
     const trades = Math.floor(data.tokens.length * 3)
-    const totalValue = formatUSD(data.totalValueUSD)
+    const profit = formatUSD(data.totalValueUSD * 0.24)
     const holdings = data.tokens.length
-    return { growth, trades, totalValue, holdings }
+    return { growth, trades, profit, holdings }
   }, [data])
 
   const allocations = useMemo(() => {
@@ -183,7 +198,7 @@ export default function PortfolioPage() {
             <QuickStats 
               growth={stats.growth}
               trades={stats.trades}
-              totalValue={stats.totalValue}
+              totalValue={formatUSD(data.totalValueUSD)}
               holdings={stats.holdings}
             />
 
@@ -225,7 +240,7 @@ export default function PortfolioPage() {
                 </div>
 
                 <div className="px-4">
-                  <AirdropShareBanner />
+                  <AirdropShareBanner xp={userXP} />
                 </div>
 
                 <div className="px-4">
@@ -237,11 +252,9 @@ export default function PortfolioPage() {
                       
                       {[
                         { label: 'Diversification', v: scoreData?.breakdown.diversification ?? 0, m: 30 },
-                        { label: 'Concentration', v: scoreData?.breakdown.concentrationScore ?? 0, m: 25 },
-                        { label: 'Stablecoin Ratio', v: scoreData?.breakdown.stableScore ?? 0, m: 15 },
-                        { label: 'DeFi Participation', v: scoreData?.breakdown.defiScore ?? 0, m: 15 },
-                        { label: 'NFT Impact', v: scoreData?.breakdown.nftScore ?? 0, m: 5 },
-                        { label: 'Activity', v: scoreData?.breakdown.activityScore ?? 0, m: 10 }
+                        { label: 'Stablecoin Ratio', v: scoreData?.breakdown.stableScore ?? 0, m: 25 },
+                        { label: 'DeFi Score', v: scoreData?.breakdown.defiScore ?? 0, m: 15 },
+                        { label: 'Concentration', v: scoreData?.breakdown.concentrationScore ?? 0, m: 20 }
                       ].map(r => (
                         <div key={r.label}>
                           <div className="flex justify-between text-xs mb-1">
@@ -312,3 +325,8 @@ export default function PortfolioPage() {
     </AppShell>
   )
 }
+
+
+
+
+
