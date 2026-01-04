@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 import Link from 'next/link'
 import { AppShell } from '@/components/AppShell'
 import { CopyTraderCard } from '@/components/CopyTraderCard'
+import { useTaskTracking } from '@/hooks/useTaskTracking'
 import { Search, TrendingUp, Shield, Users, Flame } from 'lucide-react'
 
 type Trader = {
@@ -140,6 +141,9 @@ export default function TradersPage() {
   const [traders, setTraders] = useState<Trader[]>(GENESIS_TRADERS)
   const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // Track page visit for XP task
+  useTaskTracking()
 
   useEffect(() => {
     // Simulate loading

@@ -7,7 +7,8 @@ import { AppShell } from '@/components/AppShell'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
 import { AirdropShareBanner } from '@/components/AirdropBanner'
-import { Gift, Share2, FileCheck, UserPlus, Star, ChevronRight, Zap, Check, Shield, Award, Sparkles, ArrowLeftRight, Users, Coins, Eye, Calendar } from 'lucide-react'
+import { useTaskVerification } from '@/hooks/useTaskTracking'
+import { Gift, Share2, FileCheck, UserPlus, Star, ChevronRight, Zap, Check, Shield, Award, Sparkles, ArrowLeftRight, Users, Coins, Eye, Calendar, Lock } from 'lucide-react'
 
 // Contract addresses on Base Mainnet
 const SBT_CONTRACT = '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786' as const
@@ -72,8 +73,17 @@ export default function EventsPage() {
   const { writeContract, isPending } = useWriteContract()
   const [loading, setLoading] = useState<string | null>(null)
   const [sbtStatus, setSbtStatus] = useState<string>('')
+  const [taskVerifications, setTaskVerifications] = useState<Record<string, boolean>>({})
+  const { checkAllTasks } = useTaskVerification(address)
 
   const wrongNetwork = chainId !== BASE_CHAIN_ID
+
+  // Load task verifications from backend
+  useEffect(() => {
+    if (address) {
+      checkAllTasks().then(setTaskVerifications)
+    }
+  }, [address])
 
   // SBT contract reads
   const { data: hasClaimed, refetch: refetchClaimed } = useReadContract({
@@ -333,9 +343,10 @@ export default function EventsPage() {
             </h3>
             
             {tasks.map(task => {
-              // Check if task requires action first (has link but not yet visited)
+              // Check if task is verified by backend
+              const isVerified = taskVerifications[task.taskId] === true
               const hasAction = !!task.action
-              const canClaim = !task.completed && !wrongNetwork && !isPending
+              const canClaim = !task.completed && !wrongNetwork && !isPending && isVerified
               
               return (
                 <div
@@ -343,21 +354,29 @@ export default function EventsPage() {
                   className={`w-full p-4 rounded-xl border transition-all duration-200 ${
                     task.completed
                       ? 'bg-green-500/10 border-green-500/30'
-                      : 'bg-white/5 border-white/10'
+                      : isVerified
+                        ? 'bg-white/5 border-teal-500/30'
+                        : 'bg-white/5 border-white/10'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      task.completed ? 'bg-green-500/20' : 'bg-white/5'
+                      task.completed ? 'bg-green-500/20' : isVerified ? 'bg-teal-500/20' : 'bg-white/5'
                     }`}>
-                      {task.completed ? <Check size={18} className="text-green-400" /> : task.icon}
+                      {task.completed ? <Check size={18} className="text-green-400" /> : 
+                       !isVerified && hasAction ? <Lock size={18} className="text-zinc-500" /> : task.icon}
                     </div>
                     
                     <div className="flex-1 text-left">
                       <p className={`text-sm font-medium ${task.completed ? 'text-green-400' : 'text-white'}`}>
                         {task.title}
                       </p>
-                      <p className="text-xs text-zinc-400">{task.description}</p>
+                      <p className="text-xs text-zinc-400">
+                        {task.description}
+                        {!isVerified && hasAction && !task.completed && (
+                          <span className="text-orange-400 ml-1">• Complete action first</span>
+                        )}
+                      </p>
                     </div>
                     
                     <div className="flex items-center gap-2">
@@ -371,21 +390,23 @@ export default function EventsPage() {
                       {/* Two buttons: Go (if has action) + Claim */}
                       {!task.completed && (
                         <div className="flex gap-2">
-                          {hasAction && (
+                          {hasAction && !isVerified && (
                             <a
                               href={task.action}
                               className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 transition"
                             >
-                              Go
+                              Go →
                             </a>
                           )}
-                          <button
-                            onClick={() => handleCompleteTask(task)}
-                            disabled={!canClaim || loading === task.id}
-                            className="px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-medium hover:bg-teal-500/30 transition disabled:opacity-50"
-                          >
-                            {loading === task.id ? '...' : 'Claim'}
-                          </button>
+                          {(isVerified || !hasAction) && (
+                            <button
+                              onClick={() => handleCompleteTask(task)}
+                              disabled={!canClaim || loading === task.id}
+                              className="px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-medium hover:bg-teal-500/30 transition disabled:opacity-50"
+                            >
+                              {loading === task.id ? '...' : 'Claim'}
+                            </button>
+                          )}
                         </div>
                       )}
                       

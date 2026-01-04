@@ -8,6 +8,7 @@ import { ReviewSuggestedNavigator } from '@/components/ReviewSuggestedNavigator'
 import { AirdropBanner, AirdropShareBanner } from '@/components/AirdropBanner'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
+import { useTaskTracking } from '@/hooks/useTaskTracking'
 import { 
   QuickStats, 
   PerformanceChart, 
@@ -57,6 +58,9 @@ export default function PortfolioPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('Overview')
   const [userXP, setUserXP] = useState(0)
+  
+  // Track page visit for XP task
+  useTaskTracking()
 
   useEffect(() => {
     const fetchData = async () => {
