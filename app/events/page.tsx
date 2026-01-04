@@ -237,12 +237,7 @@ export default function EventsPage() {
     }
   }, [address, writeContract, refetchXP, refetchTasks])
 
-  // Auto-claim connect task when wallet connects
-  useEffect(() => {
-    if (isConnected && address && completedTasks && !completedTasks[0]) {
-      handleCompleteTask(tasks[0])
-    }
-  }, [isConnected, address, completedTasks])
+  // Auto-claim disabled - let user click manually
 
   if (!isConnected) {
     return (
@@ -402,3 +397,5 @@ export default function EventsPage() {
     </AppShell>
   )
 }
+
+
