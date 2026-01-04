@@ -102,12 +102,12 @@ export default function PortfolioPage() {
   }, [scoreData, score])
 
   const stats = useMemo(() => {
-    if (!data) return { growth: '+0%', trades: 0, profit: '$0', holdings: 0 }
+    if (!data) return { growth: '+0%', trades: 0, totalValue: '$0', holdings: 0 }
     const growth = '+24%'
     const trades = Math.floor(data.tokens.length * 3)
-    const profit = formatUSD(data.totalValueUSD * 0.24)
+    const totalValue = formatUSD(data.totalValueUSD)
     const holdings = data.tokens.length
-    return { growth, trades, profit, holdings }
+    return { growth, trades, totalValue, holdings }
   }, [data])
 
   const allocations = useMemo(() => {
@@ -183,7 +183,7 @@ export default function PortfolioPage() {
             <QuickStats 
               growth={stats.growth}
               trades={stats.trades}
-              profit={stats.profit}
+              totalValue={stats.totalValue}
               holdings={stats.holdings}
             />
 
@@ -237,9 +237,11 @@ export default function PortfolioPage() {
                       
                       {[
                         { label: 'Diversification', v: scoreData?.breakdown.diversification ?? 0, m: 30 },
-                        { label: 'Stablecoin Ratio', v: scoreData?.breakdown.stableScore ?? 0, m: 25 },
-                        { label: 'Risk Exposure', v: scoreData?.breakdown.riskScore ?? 0, m: 25 },
-                        { label: 'Concentration', v: scoreData?.breakdown.concentrationScore ?? 0, m: 20 }
+                        { label: 'Concentration', v: scoreData?.breakdown.concentrationScore ?? 0, m: 25 },
+                        { label: 'Stablecoin Ratio', v: scoreData?.breakdown.stableScore ?? 0, m: 15 },
+                        { label: 'DeFi Participation', v: scoreData?.breakdown.defiScore ?? 0, m: 15 },
+                        { label: 'NFT Impact', v: scoreData?.breakdown.nftScore ?? 0, m: 5 },
+                        { label: 'Activity', v: scoreData?.breakdown.activityScore ?? 0, m: 10 }
                       ].map(r => (
                         <div key={r.label}>
                           <div className="flex justify-between text-xs mb-1">

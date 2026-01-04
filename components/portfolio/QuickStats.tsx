@@ -1,36 +1,36 @@
-import { TrendingUp, Activity, DollarSign, Wallet } from 'lucide-react'
+﻿import { TrendingUp, Activity, Wallet, Layers } from 'lucide-react'
 
 interface QuickStatsProps {
   growth: string
   trades: number
-  profit: string
+  totalValue: string
   holdings?: number
 }
 
-export function QuickStats({ growth, trades, profit, holdings }: QuickStatsProps) {
+export function QuickStats({ growth, trades, totalValue, holdings }: QuickStatsProps) {
   const stats = [
-    { 
-      label: 'Portfolio Growth', 
-      value: growth, 
+    {
+      label: 'Score Trend',
+      value: growth,
       icon: TrendingUp,
       color: 'text-teal-400'
     },
-    { 
-      label: 'Active Trades', 
-      value: trades.toString(), 
+    {
+      label: 'Transactions',
+      value: trades.toString(),
       icon: Activity,
       color: 'text-blue-400'
     },
-    { 
-      label: 'Total Profit', 
-      value: profit, 
-      icon: DollarSign,
+    {
+      label: 'Total Value',
+      value: totalValue,
+      icon: Wallet,
       color: 'text-green-400'
     },
-    { 
-      label: 'Holdings', 
-      value: holdings?.toString() || trades.toString(), 
-      icon: Wallet,
+    {
+      label: 'Assets',
+      value: holdings?.toString() || trades.toString(),
+      icon: Layers,
       color: 'text-purple-400'
     },
   ]
@@ -38,8 +38,8 @@ export function QuickStats({ growth, trades, profit, holdings }: QuickStatsProps
   return (
     <div className="mt-6 px-4 grid grid-cols-2 gap-3">
       {stats.map((stat) => (
-        <div 
-          key={stat.label} 
+        <div
+          key={stat.label}
           className="rounded-xl bg-[#0E1F24] p-3 border border-white/10 shadow-md"
         >
           <div className="flex items-center gap-1.5 mb-1">

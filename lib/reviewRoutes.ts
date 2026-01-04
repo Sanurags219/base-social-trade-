@@ -1,4 +1,4 @@
-import { ScoreBreakdown } from './scoreEngine'
+﻿import { ScoreBreakdown } from './scoreEngine'
 
 export type ReviewRoute = {
   label: string
@@ -6,38 +6,55 @@ export type ReviewRoute = {
   href: string
 }
 
+/**
+ * Generate review routes based on score breakdown
+ * Used to show actionable suggestions in Review Suggested state
+ */
 export function reviewRoutes(b: ScoreBreakdown): ReviewRoute[] {
   const r: ReviewRoute[] = []
 
-  if (b.diversification < 15) {
+  // Diversification below threshold
+  if (b.diversification < 18) {
     r.push({
       label: 'Low diversification',
       cta: 'Diversify assets',
-      href: '/swap?mode=diversify'
+      href: '/traders'
     })
   }
 
-  if (b.stableScore < 15) {
-    r.push({
-      label: 'Low stablecoins',
-      cta: 'Add USDC',
-      href: '/swap?token=USDC'
-    })
-  }
-
-  if (b.riskScore < 15) {
-    r.push({
-      label: 'High risk exposure',
-      cta: 'Review risk',
-      href: '/insights/risk'
-    })
-  }
-
-  if (b.concentrationScore < 10) {
+  // Concentration too high (single asset 60%+)
+  if (b.concentrationScore < 15) {
     r.push({
       label: 'High concentration',
       cta: 'Rebalance',
-      href: '/insights/concentration'
+      href: '/swap?from=ETH'
+    })
+  }
+
+  // Stablecoins below 20%
+  if (b.stableScore < 10) {
+    r.push({
+      label: 'Low stablecoins',
+      cta: 'Add USDC',
+      href: '/swap?to=USDC'
+    })
+  }
+
+  // No DeFi participation
+  if (b.defiScore < 5) {
+    r.push({
+      label: 'No DeFi exposure',
+      cta: 'Explore DeFi',
+      href: '/traders'
+    })
+  }
+
+  // No recent activity
+  if (b.activityScore < 5) {
+    r.push({
+      label: 'Inactive wallet',
+      cta: 'Make a swap',
+      href: '/swap'
     })
   }
 
