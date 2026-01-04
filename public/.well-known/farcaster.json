@@ -18,5 +18,16 @@
       "https://base-social-trade.vercel.app/screenshots/swap.png",
       "https://base-social-trade.vercel.app/screenshots/profile.png"
     ]
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "Baseline",
+    "description": "Track portfolio health, DeFi, NFTs & earn XP",
+    "iconUrl": "https://base-social-trade.vercel.app/icon.png",
+    "homeUrl": "https://base-social-trade.vercel.app",
+    "base": {
+      "chains": ["base"],
+      "capabilities": ["wallet", "notifications", "sharing"]
+    }
   }
 }

@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
 import { PortfolioSecurityHero } from '@/components/PortfolioSecurityHero'
 import { ReviewSuggestedNavigator } from '@/components/ReviewSuggestedNavigator'
-import { AirdropBanner } from '@/components/AirdropBanner'
+import { AirdropShareBanner } from '@/components/AirdropShareBanner'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
 import { 
@@ -225,7 +225,7 @@ export default function PortfolioPage() {
                 </div>
 
                 <div className="px-4">
-                  <AirdropBanner />
+                  <AirdropShareBanner />
                 </div>
 
                 <div className="px-4">
