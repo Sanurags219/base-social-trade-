@@ -1,13 +1,22 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { OnchainKitProvider } from '@coinbase/onchainkit'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { farcasterMiniApp } from '@farcaster/miniapp-wagmi-connector'
+import { coinbaseWallet, injected } from 'wagmi/connectors'
 
 const wagmiConfig = createConfig({
   chains: [base],
+  connectors: [
+    farcasterMiniApp(),
+    coinbaseWallet({
+      appName: 'Baseline',
+    }),
+    injected(),
+  ],
   transports: {
     [base.id]: http('https://mainnet.base.org')
   },
@@ -29,11 +38,11 @@ function FarcasterReady() {
     const initFarcaster = async () => {
       try {
         const sdk = await import('@farcaster/miniapp-sdk')
-        if (sdk && sdk.sdk && sdk.sdk.actions && sdk.sdk.actions.ready) {
+        if (sdk?.sdk?.actions?.ready) {
           sdk.sdk.actions.ready()
         }
       } catch (e) {
-        // Not in Farcaster context, ignore
+        // Not in Farcaster context
       }
     }
     initFarcaster()

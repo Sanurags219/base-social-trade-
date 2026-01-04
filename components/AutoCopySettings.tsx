@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useAccount } from 'wagmi'
+import { useState, useEffect } from 'react'
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { getFactoryAddress, FACTORY_ABI } from '@/lib/copyvault'
 
 interface AutoCopySettingsProps {
   traderAddress: string
@@ -18,44 +19,36 @@ export function AutoCopySettings({
 }: AutoCopySettingsProps) {
   const { address } = useAccount()
   const [copyPercent, setCopyPercent] = useState(10)
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
+
+  const { writeContract, data: txHash, isPending } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash: txHash })
 
   const isEligible = traderReputation >= 650
 
-  const handleEnableAutoCopy = async () => {
+  // Handle success
+  useEffect(() => {
+    if (isSuccess) {
+      setMessage('Vault created! Deposit ETH to start copy trading.')
+      setTimeout(() => onClose(), 2000)
+    }
+  }, [isSuccess, onClose])
+
+  const handleEnableAutoCopy = () => {
     if (!address || !isEligible) return
 
-    setLoading(true)
-    setMessage('')
+    setMessage('Confirm in wallet...')
 
     try {
-      const res = await fetch('/api/copy-vault', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'create',
-          owner: address,
-          trader: traderAddress,
-          copyPercent
-        })
+      writeContract({
+        address: getFactoryAddress() as `0x${string}`,
+        abi: FACTORY_ABI,
+        functionName: 'createVault',
+        args: [traderAddress as `0x${string}`, BigInt(copyPercent)]
       })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        setMessage(`✅ Auto-copy enabled for ${copyPercent}% allocation`)
-        setTimeout(() => {
-          onClose()
-        }, 1500)
-      } else {
-        setMessage(`❌ ${data.error}`)
-      }
-    } catch (e) {
-      setMessage('❌ Failed to enable auto-copy')
-      console.error(e)
-    } finally {
-      setLoading(false)
+    } catch (e: unknown) {
+      const err = e as { shortMessage?: string }
+      setMessage(err?.shortMessage || 'Failed to create vault')
     }
   }
 
@@ -121,10 +114,10 @@ export function AutoCopySettings({
       <div className="flex gap-2">
         <button
           onClick={handleEnableAutoCopy}
-          disabled={loading}
+          disabled={isPending || isConfirming}
           className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg py-3 font-semibold transition"
         >
-          {loading ? 'Enabling...' : '🤖 Enable Auto Copy'}
+          {isPending || isConfirming ? 'Confirm in wallet...' : 'Create Vault'}
         </button>
         <button
           onClick={onClose}

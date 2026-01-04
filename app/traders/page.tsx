@@ -1,32 +1,34 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 import Link from 'next/link'
 import { AppShell } from '@/components/AppShell'
-import { Card } from '@/components/ui/Card'
-import { WalletConnect } from '@/components/WalletConnect'
+import { CopyTraderCard } from '@/components/CopyTraderCard'
+import { Search, TrendingUp, Shield, Users, Flame } from 'lucide-react'
 
 type Trader = {
   address: string
+  name: string
   reputation: number
   tier: string
   pnl: string
   trades: number
   copiers: number
   winRate: number
+  roi: number
+  strategy: string
+  chartData: number[]
   source: 'onchain' | 'api'
 }
 
-// Convert basis points PNL to display string
-function formatPnL(pnlBasisPoints: number): string {
-  const percent = ((pnlBasisPoints - 10000) / 100).toFixed(1)
-  const value = Math.abs(Number(percent)) * 1000 // Rough estimate
-  if (Number(percent) >= 0) {
-    return `+$${value.toLocaleString()}`
-  }
-  return `-$${Math.abs(value).toLocaleString()}`
-}
+const FILTERS = [
+  { id: 'roi', label: 'Top ROI', icon: TrendingUp },
+  { id: 'safe', label: 'Low Risk', icon: Shield },
+  { id: 'popular', label: 'Most Copied', icon: Users },
+  { id: 'trending', label: 'Trending', icon: Flame },
+]
 
 function getTier(reputation: number): string {
   if (reputation >= 850) return 'Elite'
@@ -35,270 +37,302 @@ function getTier(reputation: number): string {
   return 'New'
 }
 
+function generateChartData(positive: boolean): number[] {
+  const base = positive ? 20 : 30
+  const trend = positive ? 2 : -1.5
+  return Array.from({ length: 10 }, (_, i) => 
+    Math.max(5, base + trend * i + (Math.random() - 0.5) * 10)
+  )
+}
+
+// Genesis traders with premium data
+const GENESIS_TRADERS: Trader[] = [
+  {
+    address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    name: 'Tony_Bro',
+    reputation: 920,
+    tier: 'Elite',
+    pnl: '+$124,500',
+    trades: 1247,
+    copiers: 4057,
+    winRate: 86,
+    roi: 229.35,
+    strategy: 'Perpetual Futures',
+    chartData: generateChartData(true),
+    source: 'api'
+  },
+  {
+    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5fF21',
+    name: 'CRYPTOBOX',
+    reputation: 875,
+    tier: 'Elite',
+    pnl: '+$87,200',
+    trades: 892,
+    copiers: 28111,
+    winRate: 75,
+    roi: 10.11,
+    strategy: 'Spot Trading',
+    chartData: generateChartData(true),
+    source: 'api'
+  },
+  {
+    address: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
+    name: 'BaseWhale',
+    reputation: 780,
+    tier: 'Trusted',
+    pnl: '+$45,800',
+    trades: 567,
+    copiers: 1892,
+    winRate: 79,
+    roi: 156.78,
+    strategy: 'DeFi Yield',
+    chartData: generateChartData(true),
+    source: 'api'
+  },
+  {
+    address: '0x22E228AdE324185123A54Ad25F3459a99CF51E7a',
+    name: 'AlphaSeeker',
+    reputation: 720,
+    tier: 'Trusted',
+    pnl: '+$32,100',
+    trades: 423,
+    copiers: 892,
+    winRate: 72,
+    roi: 45.23,
+    strategy: 'Momentum',
+    chartData: generateChartData(true),
+    source: 'api'
+  },
+  {
+    address: '0x1234567890AbCdEf1234567890AbCdEf12345678',
+    name: 'SteadyHands',
+    reputation: 650,
+    tier: 'Trusted',
+    pnl: '+$18,400',
+    trades: 289,
+    copiers: 342,
+    winRate: 68,
+    roi: 28.45,
+    strategy: 'Value Picks',
+    chartData: generateChartData(true),
+    source: 'api'
+  },
+  {
+    address: '0xFeDcBa0987654321FeDcBa0987654321FeDcBa09',
+    name: 'RiskTaker',
+    reputation: 520,
+    tier: 'Regular',
+    pnl: '-$2,100',
+    trades: 156,
+    copiers: 45,
+    winRate: 52,
+    roi: -5.23,
+    strategy: 'High Risk',
+    chartData: generateChartData(false),
+    source: 'api'
+  }
+]
+
 export default function TradersPage() {
+  const router = useRouter()
   const { address, isConnected } = useAccount()
-  const [traders, setTraders] = useState<Trader[]>([])
-  const [filter, setFilter] = useState<'all' | 'elite' | 'trusted'>('all')
+  const [activeFilter, setActiveFilter] = useState('roi')
+  const [traders, setTraders] = useState<Trader[]>(GENESIS_TRADERS)
+  const [searchQuery, setSearchQuery] = useState('')
   const [loading, setLoading] = useState(true)
-  const [dataSource, setDataSource] = useState<'onchain' | 'api'>('api')
 
   useEffect(() => {
-    async function fetchTraders() {
-      setLoading(true)
-      
-      try {
-        // Try on-chain first via API
-        const res = await fetch('/api/trader?onchain=true&limit=10')
-        const data = await res.json()
-        
-        if (data.traders && data.traders.length > 0) {
-          const mapped = data.traders.map((t: {
-            address: string
-            reputation: number
-            pnl: number
-            winRate: number
-            trades: number
-            copiers: number
-          }) => ({
-            address: t.address,
-            reputation: t.reputation,
-            tier: getTier(t.reputation),
-            pnl: formatPnL(t.pnl),
-            trades: t.trades,
-            copiers: t.copiers,
-            winRate: Math.round(t.winRate / 100),
-            source: 'onchain' as const
-          }))
-          setTraders(mapped)
-          setDataSource('onchain')
-        } else {
-          // Fallback to genesis traders
-          setTraders(GENESIS_TRADERS)
-          setDataSource('api')
-        }
-      } catch {
-        setTraders(GENESIS_TRADERS)
-        setDataSource('api')
-      }
-      
-      setLoading(false)
-    }
-    
-    fetchTraders()
+    // Simulate loading
+    const timer = setTimeout(() => setLoading(false), 500)
+    return () => clearTimeout(timer)
   }, [])
 
-  const filteredTraders = traders.filter(t => {
-    if (filter === 'elite') return t.tier === 'Elite'
-    if (filter === 'trusted') return t.tier === 'Trusted' || t.tier === 'Elite'
-    return true
-  })
-
-  const getTierColor = (tier: string) => {
-    switch (tier) {
-      case 'Elite': return 'text-purple-400 bg-purple-900/20'
-      case 'Trusted': return 'text-blue-400 bg-blue-900/20'
-      default: return 'text-zinc-400 bg-zinc-900/20'
+  // Filter and sort traders
+  useEffect(() => {
+    let filtered = [...GENESIS_TRADERS]
+    
+    if (searchQuery) {
+      filtered = filtered.filter(t => 
+        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.address.toLowerCase().includes(searchQuery.toLowerCase())
+      )
     }
+
+    switch (activeFilter) {
+      case 'roi':
+        filtered.sort((a, b) => b.roi - a.roi)
+        break
+      case 'safe':
+        filtered.sort((a, b) => b.winRate - a.winRate)
+        break
+      case 'popular':
+        filtered.sort((a, b) => b.copiers - a.copiers)
+        break
+      case 'trending':
+        filtered.sort((a, b) => b.reputation - a.reputation)
+        break
+    }
+
+    setTraders(filtered)
+  }, [activeFilter, searchQuery])
+
+  const handleCopyTrader = (address: string) => {
+    router.push('/trader/' + address)
   }
 
   return (
     <AppShell>
-      <WalletConnect />
+      {/* Hero Section */}
+      <section className="
+        relative rounded-2xl p-5 mb-6
+        bg-gradient-to-r from-teal-500/20 to-blue-500/20
+        border border-white/10
+        overflow-hidden
+      ">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(45,212,191,0.2),transparent_50%)]" />
+        
+        <div className="relative">
+          <h1 className="text-xl font-semibold text-white">
+            Copy Elite Traders
+          </h1>
+          <p className="text-[13px] text-zinc-300 mt-1">
+            Performance-ranked traders on Base
+          </p>
+          
+          <div className="mt-4 flex gap-6">
+            <div>
+              <p className="text-[11px] text-zinc-400">Total Traders</p>
+              <p className="text-lg font-bold text-white">2,847</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-zinc-400">Total Copied</p>
+              <p className="text-lg font-bold text-teal-400">$12.4M</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <h1 className="text-lg font-semibold mb-2">Top Traders</h1>
-      <p className="text-xs text-zinc-400 mb-6">
-        Copy successful traders and mirror their strategies
-      </p>
-
-      {/* On-chain indicator */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className={`w-2 h-2 rounded-full ${dataSource === 'onchain' ? 'bg-green-500' : 'bg-yellow-500'}`} />
-        <span className="text-xs text-zinc-500">
-          {dataSource === 'onchain' ? '⛓️ On-chain data' : '📡 API data'}
-        </span>
+      {/* Search Bar */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <input
+          type="text"
+          placeholder="Search traders..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="
+            w-full pl-10 pr-4 py-3 rounded-xl
+            bg-[#0e1f24] border border-white/5
+            text-[14px] text-white placeholder-zinc-500
+            focus:outline-none focus:border-teal-500/50
+            transition-colors
+          "
+        />
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 mb-6">
-        {(['all', 'elite', 'trusted'] as const).map((f) => (
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+        {FILTERS.map(filter => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition ${
-              filter === f
-                ? 'bg-[#0052FF] text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
+            key={filter.id}
+            onClick={() => setActiveFilter(filter.id)}
+            className={
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-all duration-200 ' +
+              (activeFilter === filter.id 
+                ? 'bg-teal-400/20 text-teal-300 border border-teal-400/30' 
+                : 'bg-white/5 text-zinc-400 border border-transparent hover:bg-white/10')
+            }
           >
-            {f === 'all' ? 'All' : f === 'elite' ? 'Elite' : 'Trusted+'}
+            <filter.icon size={12} />
+            {filter.label}
           </button>
         ))}
       </div>
 
-      {/* Info Card */}
-      <Card>
-        <p className="text-sm font-medium mb-2">Copy Trading Security</p>
-        <div className="text-xs text-zinc-400 space-y-1">
-          <p>✅ Non-custodial - you own your vault</p>
-          <p>✅ Reputation-gated - only trusted traders</p>
-          <p>✅ Withdraw anytime - no lockups</p>
-          <p>✅ All data verified on Base</p>
+      {/* Security Badge */}
+      <div className="
+        relative rounded-xl p-3 mb-4
+        bg-gradient-to-b from-[#0e1f24] to-[#071317]
+        border border-white/5
+      ">
+        <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.1),transparent_60%)]" />
+        <div className="relative flex items-center gap-2 text-[11px] text-zinc-400">
+          <Shield size={14} className="text-teal-400" />
+          <span>Non-custodial vaults</span>
+          <span className="mx-1">|</span>
+          <span>650+ rep required</span>
+          <span className="mx-1">|</span>
+          <span>Withdraw anytime</span>
         </div>
-      </Card>
+      </div>
 
-      {/* Traders List */}
-      <div className="space-y-3 mt-4">
+      {/* Trader Cards */}
+      <div className="grid gap-4 pb-24">
         {loading ? (
-          <Card>
-            <p className="text-sm text-zinc-400 text-center py-4">Loading on-chain data...</p>
-          </Card>
-        ) : filteredTraders.length === 0 ? (
-          <Card>
-            <p className="text-sm text-zinc-400 text-center py-4">No traders found</p>
-          </Card>
+          <div className="
+            relative rounded-2xl p-8
+            bg-gradient-to-b from-[#0e1f24] to-[#071317]
+            border border-white/5
+            text-center
+          ">
+            <p className="text-zinc-400 text-sm">Loading traders...</p>
+          </div>
+        ) : traders.length === 0 ? (
+          <div className="
+            relative rounded-2xl p-8
+            bg-gradient-to-b from-[#0e1f24] to-[#071317]
+            border border-white/5
+            text-center
+          ">
+            <p className="text-zinc-400 text-sm">No traders found</p>
+          </div>
         ) : (
-          filteredTraders.map((trader, i) => (
-            <div
+          traders.map((trader) => (
+            <CopyTraderCard
               key={trader.address}
-              className="bg-white/[0.03] border border-white/5 rounded-2xl p-4"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
-                  </span>
-                  <div>
-                    <p className="font-medium">
-                      {trader.address.slice(0, 6)}…{trader.address.slice(-4)}
-                    </p>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${getTierColor(trader.tier)}`}>
-                      {trader.tier}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-400 font-bold">{trader.pnl}</p>
-                  <p className="text-xs text-zinc-500">All-time PnL</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-2 text-center text-xs mb-3">
-                <div className="bg-white/[0.03] rounded-xl py-2">
-                  <p className="text-zinc-500">Rep</p>
-                  <p className="font-medium text-blue-400">{trader.reputation}</p>
-                </div>
-                <div className="bg-white/[0.03] rounded-xl py-2">
-                  <p className="text-zinc-500">Trades</p>
-                  <p className="font-medium">{trader.trades}</p>
-                </div>
-                <div className="bg-white/[0.03] rounded-xl py-2">
-                  <p className="text-zinc-500">Win %</p>
-                  <p className="font-medium text-green-400">{trader.winRate}%</p>
-                </div>
-                <div className="bg-white/[0.03] rounded-xl py-2">
-                  <p className="text-zinc-500">Copiers</p>
-                  <p className="font-medium">{trader.copiers}</p>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Link
-                  href={`/trader/${trader.address}`}
-                  className="flex-1 bg-[#0052FF] hover:bg-[#0047E1] text-center py-2.5 rounded-[14px] text-sm font-medium transition"
-                >
-                  Copy Trade
-                </Link>
-                <Link
-                  href={`/reputation/${trader.address}`}
-                  className="px-4 bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-[14px] text-sm font-medium transition"
-                >
-                  View
-                </Link>
-              </div>
-            </div>
+              name={trader.name}
+              address={trader.address}
+              roi={trader.roi}
+              pnl={trader.pnl}
+              copiers={trader.copiers}
+              winRate={trader.winRate}
+              strategy={trader.strategy}
+              chartData={trader.chartData}
+              onCopy={() => handleCopyTrader(trader.address)}
+            />
           ))
         )}
       </div>
 
       {/* Become a Trader CTA */}
       {isConnected && (
-        <div className="mt-6 bg-white/[0.03] border border-white/5 rounded-2xl p-4">
-          <p className="text-sm font-medium mb-1">Become a Top Trader</p>
-          <p className="text-xs text-zinc-400 mb-3">
-            Build your reputation by trading consistently. 650+ rep unlocks copy trading.
-          </p>
-          <Link
-            href={`/reputation/${address}`}
-            className="block text-center bg-zinc-800 hover:bg-zinc-700 py-2.5 rounded-[14px] text-sm font-medium transition"
-          >
-            View Your Reputation
-          </Link>
+        <div className="
+          fixed bottom-20 left-4 right-4 max-w-md mx-auto
+          rounded-2xl p-4
+          bg-gradient-to-b from-[#0e1f24] to-[#071317]
+          border border-white/10
+          shadow-[0_-10px_40px_-10px_rgba(0,0,0,0.8)]
+        ">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[14px] font-semibold">Want to be copied?</p>
+              <p className="text-[11px] text-zinc-400">Build 650+ reputation</p>
+            </div>
+            <Link
+              href={'/reputation/' + address}
+              className="
+                px-4 py-2 rounded-full text-[13px] font-medium
+                bg-teal-400/20 text-teal-300
+                border border-teal-400/30
+                hover:bg-teal-400/30
+                transition-all duration-200
+              "
+            >
+              View Rep
+            </Link>
+          </div>
         </div>
       )}
     </AppShell>
   )
 }
-
-// Genesis traders (used until TraderRegistry is populated)
-const GENESIS_TRADERS: Trader[] = [
-  {
-    address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
-    reputation: 920,
-    tier: 'Elite',
-    pnl: '+$124,500',
-    trades: 1247,
-    copiers: 89,
-    winRate: 68,
-    source: 'api'
-  },
-  {
-    address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5fF21',
-    reputation: 875,
-    tier: 'Elite',
-    pnl: '+$87,200',
-    trades: 892,
-    copiers: 56,
-    winRate: 64,
-    source: 'api'
-  },
-  {
-    address: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B',
-    reputation: 780,
-    tier: 'Trusted',
-    pnl: '+$45,800',
-    trades: 567,
-    copiers: 34,
-    winRate: 61,
-    source: 'api'
-  },
-  {
-    address: '0x22E228AdE324185123A54Ad25F3459a99CF51E7a',
-    reputation: 720,
-    tier: 'Trusted',
-    pnl: '+$32,100',
-    trades: 423,
-    copiers: 21,
-    winRate: 58,
-    source: 'api'
-  },
-  {
-    address: '0x1234567890AbCdEf1234567890AbCdEf12345678',
-    reputation: 650,
-    tier: 'Trusted',
-    pnl: '+$18,400',
-    trades: 289,
-    copiers: 12,
-    winRate: 55,
-    source: 'api'
-  },
-  {
-    address: '0xFeDcBa0987654321FeDcBa0987654321FeDcBa09',
-    reputation: 580,
-    tier: 'Regular',
-    pnl: '+$8,200',
-    trades: 156,
-    copiers: 5,
-    winRate: 52,
-    source: 'api'
-  }
-]

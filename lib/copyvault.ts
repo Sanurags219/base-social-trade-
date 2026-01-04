@@ -28,7 +28,7 @@ export const FACTORY_ABI = [
     outputs: [{ name: '', type: 'address[]' }]
   },
   {
-    name: 'totalVaults',
+    name: 'getVaultCount',
     type: 'function',
     stateMutability: 'view',
     inputs: [],
@@ -198,7 +198,7 @@ export async function getTotalVaults(): Promise<number> {
     const total = await publicClient.readContract({
       address: COPY_VAULT_FACTORY as `0x${string}`,
       abi: FACTORY_ABI,
-      functionName: 'totalVaults'
+      functionName: 'getVaultCount'
     })
     return Number(total)
   } catch (error) {

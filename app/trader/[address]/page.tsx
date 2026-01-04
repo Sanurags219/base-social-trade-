@@ -16,11 +16,13 @@ type TraderData = {
   lastUpdated: number
 }
 
+const MIN_REPUTATION_TO_COPY = 650
+
 export default function TraderProfile() {
   const params = useParams()
   const traderAddress = params.address as string
   const { address: userAddress } = useAccount()
-  
+
   const [trader, setTrader] = useState<TraderData | null>(null)
   const [copyPercent, setCopyPercent] = useState(10)
   const [showCopyModal, setShowCopyModal] = useState(false)
@@ -62,19 +64,28 @@ export default function TraderProfile() {
 
   // Handle successful vault creation
   useEffect(() => {
-    if (isSuccess) {
-      setMessage('✅ Vault created! Deposit funds to start copy trading.')
+    if (isSuccess && userAddress) {
+      setMessage('Vault created! Deposit funds to start copy trading.')
       setShowCopyModal(false)
+      // Track copy trade for rewards
+      localStorage.setItem('copy_traded_' + userAddress.toLowerCase(), 'true')
     }
-  }, [isSuccess])
+  }, [isSuccess, userAddress])
+
+  const canCopy = trader && trader.reputation >= MIN_REPUTATION_TO_COPY
 
   const handleCreateVault = () => {
     if (!userAddress) {
-      setMessage('❌ Connect wallet first')
+      setMessage('Connect wallet first')
       return
     }
 
-    setMessage('⏳ Confirm in wallet...')
+    if (!canCopy) {
+      setMessage('Trader must have 650+ reputation to be copied')
+      return
+    }
+
+    setMessage('Confirm in wallet...')
 
     try {
       writeContract({
@@ -84,7 +95,7 @@ export default function TraderProfile() {
         args: [traderAddress as `0x${string}`, BigInt(copyPercent)]
       })
     } catch (e: any) {
-      setMessage(`❌ ${e?.shortMessage || 'Failed to create vault'}`)
+      setMessage(e?.shortMessage || 'Failed to create vault')
     }
   }
 
@@ -113,7 +124,7 @@ export default function TraderProfile() {
           <div>
             <p className="text-sm text-zinc-400 mb-1">Wallet</p>
             <p className="font-medium font-mono">
-              {traderAddress.slice(0, 6)}…{traderAddress.slice(-4)}
+              {traderAddress.slice(0, 6)}...{traderAddress.slice(-4)}
             </p>
           </div>
           {trader.hasToken && (
@@ -132,8 +143,12 @@ export default function TraderProfile() {
           </div>
           <div className="bg-black rounded-lg p-3">
             <p className="text-zinc-400 text-xs">Status</p>
-            <p className="font-semibold">
-              {trader.hasToken ? '🔗 Verified' : '⏳ Unverified'}
+            <p className="font-semibold flex items-center gap-1">
+              {trader.hasToken ? (
+                <><span className="text-green-400">Verified</span></>
+              ) : (
+                <><span className="text-zinc-400">Unverified</span></>
+              )}
             </p>
           </div>
         </div>
@@ -149,7 +164,9 @@ export default function TraderProfile() {
       <div className="mt-4">
         <Card>
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold">🤖 Copy Trading</p>
+            <p className="text-sm font-semibold flex items-center gap-2">
+              <span>Copy Trading</span>
+            </p>
             <span className="text-xs text-green-400 bg-green-900/20 px-2 py-0.5 rounded">
               On-Chain
             </span>
@@ -159,9 +176,22 @@ export default function TraderProfile() {
             Create a vault to automatically mirror this trader's positions. You stay in full control of your funds.
           </p>
 
+          {/* Reputation Gate Warning */}
+          {!canCopy && (
+            <div className="mb-4 p-3 rounded-xl bg-red-900/20 border border-red-500/30">
+              <p className="text-xs text-red-400">
+                This trader needs 650+ reputation to be copied.
+                Current: {trader.reputation}
+              </p>
+            </div>
+          )}
+
           {!showCopyModal ? (
-            <Button onClick={() => setShowCopyModal(true)} disabled={!userAddress}>
-              {userAddress ? '🚀 Create Copy Vault' : 'Connect Wallet'}
+            <Button 
+              onClick={() => setShowCopyModal(true)} 
+              disabled={!userAddress || !canCopy}
+            >
+              {!userAddress ? 'Connect Wallet' : !canCopy ? 'Not Eligible' : 'Create Copy Vault'}
             </Button>
           ) : (
             <div className="space-y-3">
@@ -182,10 +212,19 @@ export default function TraderProfile() {
                 </div>
               </div>
 
-              <div className="text-xs text-zinc-300 bg-zinc-950 rounded-lg p-3">
-                <p>✅ Non-custodial vault (you own it)</p>
-                <p>✅ Withdraw anytime (no lockup)</p>
-                <p>✅ {copyPercent}% of vault mirrors trades</p>
+              <div className="text-xs text-zinc-300 bg-zinc-950 rounded-lg p-3 space-y-1">
+                <p className="flex items-center gap-2">
+                  <span className="text-green-400">&#10003;</span>
+                  Non-custodial vault (you own it)
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-green-400">&#10003;</span>
+                  Withdraw anytime (no lockup)
+                </p>
+                <p className="flex items-center gap-2">
+                  <span className="text-green-400">&#10003;</span>
+                  {copyPercent}% of vault mirrors trades
+                </p>
               </div>
 
               <div className="flex gap-2">
@@ -194,7 +233,7 @@ export default function TraderProfile() {
                   disabled={isPending || isConfirming}
                   className="flex-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl py-3 text-sm font-semibold transition"
                 >
-                  {isPending ? '⏳ Confirm...' : isConfirming ? '⏳ Creating...' : 'Create Vault'}
+                  {isPending || isConfirming ? 'Confirm in wallet...' : 'Create Vault'}
                 </button>
                 <button
                   onClick={() => setShowCopyModal(false)}
@@ -226,8 +265,8 @@ export default function TraderProfile() {
 
           {message && (
             <div className={`text-xs text-center mt-3 p-2 rounded-lg ${
-              message.includes('✅') ? 'bg-green-900/30 text-green-400' :
-              message.includes('❌') ? 'bg-red-900/30 text-red-400' :
+              message.includes('created') ? 'bg-green-900/30 text-green-400' :
+              message.includes('first') || message.includes('must') ? 'bg-red-900/30 text-red-400' :
               'bg-zinc-800 text-zinc-300'
             }`}>
               {message}
@@ -242,7 +281,7 @@ export default function TraderProfile() {
           href={`/reputation/${traderAddress}`}
           className="text-zinc-500 hover:text-white transition"
         >
-          View full reputation →
+          View full reputation
         </a>
         <a
           href={`https://basescan.org/address/${traderAddress}`}
@@ -250,7 +289,7 @@ export default function TraderProfile() {
           rel="noopener noreferrer"
           className="text-zinc-500 hover:text-white transition"
         >
-          Basescan →
+          Basescan
         </a>
       </div>
     </AppShell>

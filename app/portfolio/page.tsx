@@ -1,119 +1,72 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAccount } from 'wagmi'
 import { AppShell } from '@/components/AppShell'
-import { Card } from '@/components/ui/Card'
-import { WalletConnect } from '@/components/WalletConnect'
-import { HealthBreakdown } from '@/components/HealthBreakdown'
+import { PortfolioSecurityHero } from '@/components/PortfolioSecurityHero'
+import { ReviewSuggestedNavigator } from '@/components/ReviewSuggestedNavigator'
+import { AirdropBanner } from '@/components/AirdropBanner'
+import { ConnectFallback } from '@/components/ConnectFallback'
+import { ProfileCard } from '@/components/ProfileCard'
+import { 
+  QuickStats, 
+  PerformanceChart, 
+  HoldingsTable, 
+  PortfolioTabs, 
+  AllocationCard,
+  BarChart,
+  PieChart
+} from '@/components/portfolio'
+import { calculateHealthScore, scoreStatus, scoreSubtitle, categorizeToken, Asset } from '@/lib/scoreEngine'
+import { reviewRoutes } from '@/lib/reviewRoutes'
+import { Share2 } from 'lucide-react'
 
 interface TokenData {
   symbol: string
   balance: number
   valueUSD: number
-  type: string
-}
-
-interface HealthData {
-  score: number
-  status: string
-  breakdown: {
-    diversification: number
-    stableRatio: number
-    riskExposure: number
-    concentration: number
-  }
-  tips?: string[]
 }
 
 interface PortfolioData {
-  address: string
   tokens: TokenData[]
   totalValueUSD: number
-  nfts: { count: number; valueUSD: number }
-  lps: { count: number; valueUSD: number }
-  health: HealthData
 }
 
-// Health Score Ring Component - Smaller, supporting role
-function HealthScoreRing({ score, size = 96 }: { score: number; size?: number }) {
-  const radius = (size / 2) - 6
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference - (score / 100) * circumference
-  
-  const getColor = () => {
-    if (score >= 80) return '#22c55e' // Green - Healthy
-    if (score >= 50) return '#eab308' // Yellow - Needs Attention
-    return '#f97316' // Orange - High Risk (no red)
-  }
-  
-  const color = getColor()
-  
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg className="w-full h-full -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="#27272a"
-          strokeWidth="6"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth="6"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          className="transition-all duration-1000 ease-out"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl font-semibold">{score}</span>
-      </div>
-    </div>
-  )
-}
-
-// Token Icon Helper
-function TokenIcon({ symbol, type }: { symbol: string; type: string }) {
-  if (symbol === 'ETH' || symbol === 'WETH') return <span>⟠</span>
-  if (symbol === 'cbETH') return <span>🔵</span>
-  if (type === 'stable') return <span>💵</span>
-  return <span>🪙</span>
-}
-
-// Format USD
 function formatUSD(value: number): string {
-  if (value >= 1000000) return `$${(value / 1000000).toFixed(2)}M`
-  if (value >= 1000) return `$${(value / 1000).toFixed(2)}K`
-  if (value >= 1) return `$${value.toFixed(2)}`
-  return `$${value.toFixed(4)}`
+  if (value >= 1000000) return '$' + (value / 1000000).toFixed(2) + 'M'
+  if (value >= 1000) return '$' + (value / 1000).toFixed(2) + 'K'
+  if (value >= 1) return '$' + value.toFixed(2)
+  return '$' + value.toFixed(2)
+}
+
+function generateChartData(): number[] {
+  return Array.from({ length: 12 }, () => Math.floor(Math.random() * 50) + 30)
+}
+
+function generateBarData() {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  return months.map(month => ({
+    month,
+    value: Math.floor(Math.random() * 40) + 10
+  }))
 }
 
 export default function PortfolioPage() {
   const { address, isConnected } = useAccount()
   const [data, setData] = useState<PortfolioData | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [xpToast, setXpToast] = useState<{ show: boolean; xp: number; message: string }>({ show: false, xp: 0, message: '' })
-  const [shareLoading, setShareLoading] = useState(false)
-  
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('Overview')
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
       try {
-        const endpoint = address 
-          ? `/api/healthscore?address=${address}`
+        const endpoint = address
+          ? '/api/healthscore?address=' + address
           : '/api/healthscore?address=demo'
         const res = await fetch(endpoint)
         if (res.ok) {
-          const result = await res.json()
-          setData(result)
+          setData(await res.json())
         }
       } catch (e) {
         console.error('Failed to fetch portfolio:', e)
@@ -121,239 +74,239 @@ export default function PortfolioPage() {
         setLoading(false)
       }
     }
-    
     fetchData()
   }, [address])
-  
-  const handleShare = useCallback(async () => {
-    if (!data) return
-    
-    setShareLoading(true)
-    
-    const text = `My wallet health score is ${data.health.score}/100 (${data.health.status}) 💪\n\nCheck your wallet health 👇`
-    const url = 'https://base-social-trade.vercel.app/portfolio'
-    
-    // Farcaster share
-    const farcasterUrl = `https://warpcast.com/~/compose?text=${encodeURIComponent(text)}&embeds[]=${encodeURIComponent(url)}`
-    window.open(farcasterUrl, '_blank')
-    
-    // Award XP for sharing
-    try {
-      const res = await fetch('/api/xp/share', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          address: address || 'anonymous',
-          type: 'health'
-        }),
-      })
-      
-      const result = await res.json()
-      
-      if (result.success) {
-        setXpToast({ show: true, xp: result.xp, message: result.message })
-        setTimeout(() => setXpToast({ show: false, xp: 0, message: '' }), 3000)
-      } else if (result.error) {
-        setXpToast({ show: true, xp: 0, message: result.error })
-        setTimeout(() => setXpToast({ show: false, xp: 0, message: '' }), 3000)
+
+  const scoreData = useMemo(() => {
+    if (!data?.tokens) return null
+
+    const assets: Asset[] = data.tokens.map(t => {
+      const { category, risk } = categorizeToken(t.symbol)
+      return {
+        symbol: t.symbol,
+        usdValue: t.valueUSD,
+        category,
+        risk
       }
-    } catch (e) {
-      console.error('Failed to award XP:', e)
-    } finally {
-      setShareLoading(false)
-    }
-  }, [data, address])
-  
-  const getStatusColor = (status: string) => {
-    if (status === 'Healthy') return 'text-green-400 bg-green-500/10'
-    if (status === 'Good') return 'text-green-400 bg-green-500/10'
-    if (status === 'Moderate') return 'text-yellow-400 bg-yellow-500/10'
-    if (status === 'At Risk') return 'text-orange-400 bg-orange-500/10'
-    return 'text-orange-400 bg-orange-500/10'
+    })
+
+    return calculateHealthScore(assets)
+  }, [data])
+
+  const score = scoreData?.score ?? 0
+  const status = scoreStatus(score)
+  const subtitle = scoreSubtitle(score)
+  const routes = useMemo(() => {
+    if (!scoreData || score >= 50) return []
+    return reviewRoutes(scoreData.breakdown)
+  }, [scoreData, score])
+
+  const stats = useMemo(() => {
+    if (!data) return { growth: '+0%', trades: 0, profit: '$0', holdings: 0 }
+    const growth = '+24%'
+    const trades = Math.floor(data.tokens.length * 3)
+    const profit = formatUSD(data.totalValueUSD * 0.24)
+    const holdings = data.tokens.length
+    return { growth, trades, profit, holdings }
+  }, [data])
+
+  const allocations = useMemo(() => {
+    if (!data?.tokens) return []
+    const colors = ['#2dd4bf', '#60a5fa', '#a78bfa', '#facc15', '#f87171', '#34d399']
+    return data.tokens.slice(0, 6).map((t, i) => ({
+      name: t.symbol,
+      color: colors[i % colors.length],
+      percent: Math.round((t.valueUSD / data.totalValueUSD) * 100)
+    }))
+  }, [data])
+
+  const pieData = useMemo(() => {
+    if (!data?.tokens) return []
+    return data.tokens.slice(0, 5).map(t => ({
+      x: t.symbol,
+      y: Math.round((t.valueUSD / data.totalValueUSD) * 100)
+    }))
+  }, [data])
+
+  const holdings = useMemo(() => {
+    if (!data?.tokens) return []
+    return data.tokens.map(t => ({
+      symbol: t.symbol,
+      name: t.symbol,
+      amount: t.balance < 0.0001 ? t.balance.toExponential(2) : t.balance.toFixed(4),
+      value: t.valueUSD.toFixed(2),
+      percent: Math.round((t.valueUSD / data.totalValueUSD) * 100),
+      change24h: (Math.random() - 0.3) * 10
+    }))
+  }, [data])
+
+  const handleShare = useCallback(() => {
+    if (!data) return
+    const text = 'My wallet health score is ' + score + '/100 (' + status + ')\n\nCheck your wallet health'
+    const url = 'https://base-social-trade.vercel.app/portfolio'
+    window.open('https://warpcast.com/~/compose?text=' + encodeURIComponent(text) + '&embeds[]=' + encodeURIComponent(url), '_blank')
+  }, [data, score, status])
+
+  if (!isConnected && !loading) {
+    return (
+      <AppShell>
+        <main className="px-4 pt-20 text-center">
+          <p className="text-sm text-zinc-400">
+            Connect your wallet to view portfolio health
+          </p>
+          <ConnectFallback />
+        </main>
+      </AppShell>
+    )
   }
 
-  const getStatusLabel = (status: string) => {
-    if (status === 'At Risk') return 'Needs Attention'
-    if (status === 'Critical') return 'High Risk'
-    return status
-  }
-  
   return (
     <AppShell>
-      <WalletConnect />
-      
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-lg font-semibold">Portfolio</h1>
-        {!isConnected && (
-          <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">
-            Demo Mode
-          </span>
-        )}
-      </div>
-      
-      {loading ? (
-        <Card>
-          <div className="text-center py-12">
-            <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-zinc-400 text-sm">Analyzing wallet...</p>
+      <main className="bg-[#05060A] pb-24">
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-10 h-10 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        </Card>
-      ) : data ? (
-        <>
-          {/* Main Health Card - Restructured: Value → Status → Score */}
-          <Card>
-            {/* Total Portfolio Value - Primary */}
-            <p className="text-xs text-zinc-400">Total Portfolio Value</p>
-            <div className="text-3xl font-semibold mt-1">
-              {formatUSD(data.totalValueUSD)}
-            </div>
-            
-            {/* Health Status + Score - Supporting */}
-            <div className="flex items-center gap-2 mt-3">
-              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(data.health.status)}`}>
-                {getStatusLabel(data.health.status)}
-              </span>
-              <span className="text-xs text-zinc-500">
-                Health score: {data.health.score} / 100
-              </span>
-            </div>
-            
-            {/* Score Breakdown - Native details element */}
-            <details className="mt-4 border-t border-zinc-800 pt-3">
-              <summary className="text-xs text-zinc-500 cursor-pointer hover:text-zinc-300 transition">
-                View score breakdown
-              </summary>
-              
-              <div className="flex justify-center mt-4">
-                <HealthScoreRing score={data.health.score} size={96} />
-              </div>
-              
-              <HealthBreakdown
-                items={[
-                  { label: 'Diversification', value: data.health.breakdown.diversification, max: 30 },
-                  { label: 'Stablecoin Ratio', value: data.health.breakdown.stableRatio, max: 25 },
-                  { label: 'Risk Exposure', value: data.health.breakdown.riskExposure, max: 25 },
-                  { label: 'Asset Concentration', value: data.health.breakdown.concentration, max: 20 }
-                ]}
+        ) : data ? (
+          <div className="space-y-6">
+            {/* Profile Card with Farcaster */}
+            <ProfileCard showFullCard={true} />
+
+            {/* Hero Section */}
+            <PortfolioSecurityHero
+              score={score}
+              status={status}
+              subtitle={'Total portfolio value ' + formatUSD(data.totalValueUSD)}
+            />
+
+            {/* Quick Stats */}
+            <QuickStats 
+              growth={stats.growth}
+              trades={stats.trades}
+              profit={stats.profit}
+              holdings={stats.holdings}
+            />
+
+            {/* Review Navigator - show when score < 60 */}
+            {score < 60 && (
+              <ReviewSuggestedNavigator 
+                routes={routes} 
+                score={score}
+                assets={data.tokens.map(t => ({
+                  symbol: t.symbol,
+                  percent: Math.round((t.valueUSD / data.totalValueUSD) * 100),
+                  value: t.valueUSD
+                }))}
               />
-            </details>
-          </Card>
-          
-          {/* Tokens - Cleaner list with breathing room */}
-          <Card className="mt-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-zinc-300">Tokens</h3>
-              <span className="text-xs text-zinc-500">{data.tokens.length} assets</span>
-            </div>
-            
-            {data.tokens.length === 0 ? (
-              <p className="text-xs text-zinc-500 text-center py-4">No tokens found</p>
-            ) : (
-              <div className="space-y-3">
-                {data.tokens.map((token, i) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-lg">
-                        <TokenIcon symbol={token.symbol} type={token.type} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{token.symbol}</p>
-                        <p className="text-xs text-zinc-500">
-                          {token.balance < 0.0001 
-                            ? token.balance.toExponential(2) 
-                            : token.balance.toFixed(4)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{formatUSD(token.valueUSD)}</p>
-                      <p className="text-xs text-zinc-500">
-                        {((token.valueUSD / data.totalValueUSD) * 100).toFixed(1)}%
-                      </p>
+            )}
+
+            {/* Tabs */}
+            <PortfolioTabs
+              tabs={['Overview', 'Holdings', 'Charts', 'Activity']}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+
+            {activeTab === 'Overview' && (
+              <>
+                <div className="px-4">
+                  <PerformanceChart 
+                    data={generateChartData()}
+                    title="Monthly Performance"
+                    period="Last 12 Months"
+                  />
+                </div>
+
+                <div className="px-4">
+                  <AllocationCard
+                    totalValue={formatUSD(data.totalValueUSD)}
+                    allocations={allocations}
+                  />
+                </div>
+
+                <div className="px-4">
+                  <AirdropBanner />
+                </div>
+
+                <div className="px-4">
+                  <div className="relative rounded-xl p-4 bg-gradient-to-b from-[#0E1F24] to-[#071317] border border-white/10">
+                    <div className="absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.08),transparent_60%)] pointer-events-none" />
+                    
+                    <div className="relative space-y-4">
+                      <p className="text-xs text-zinc-400">Health Breakdown</p>
+                      
+                      {[
+                        { label: 'Diversification', v: scoreData?.breakdown.diversification ?? 0, m: 30 },
+                        { label: 'Stablecoin Ratio', v: scoreData?.breakdown.stableScore ?? 0, m: 25 },
+                        { label: 'Risk Exposure', v: scoreData?.breakdown.riskScore ?? 0, m: 25 },
+                        { label: 'Concentration', v: scoreData?.breakdown.concentrationScore ?? 0, m: 20 }
+                      ].map(r => (
+                        <div key={r.label}>
+                          <div className="flex justify-between text-xs mb-1">
+                            <span className="text-zinc-400">{r.label}</span>
+                            <span className="text-zinc-500">{r.v}/{r.m}</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-gradient-to-r from-teal-400/80 to-teal-500/80 transition-all duration-500"
+                              style={{ width: (r.v / r.m) * 100 + '%' }}
+                            />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                ))}
+                </div>
+              </>
+            )}
+
+            {activeTab === 'Holdings' && (
+              <HoldingsTable holdings={holdings} />
+            )}
+
+            {activeTab === 'Charts' && (
+              <div className="space-y-6">
+                <div className="px-4">
+                  <BarChart 
+                    data={generateBarData()}
+                    title="Monthly Breakdown"
+                  />
+                </div>
+
+                <div className="px-4">
+                  <PieChart 
+                    data={pieData}
+                    title="Asset Allocation"
+                    totalValue={formatUSD(data.totalValueUSD)}
+                  />
+                </div>
               </div>
             )}
-          </Card>
-          
-          {/* NFTs */}
-          <Card className="mt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-300">NFTs</h3>
-              <span className="text-xs text-zinc-500">{data.nfts.count} items</span>
-            </div>
-            {data.nfts.count > 0 ? (
-              <p className="text-xs text-zinc-400 mt-2">
-                Floor value: {formatUSD(data.nfts.valueUSD)}
-              </p>
-            ) : (
-              <p className="text-xs text-zinc-600 mt-2">Coming soon</p>
+
+            {activeTab === 'Activity' && (
+              <div className="px-4 py-8 text-center">
+                <p className="text-sm text-zinc-400">No recent activity</p>
+                <p className="text-xs text-zinc-500 mt-1">Your transactions will appear here</p>
+              </div>
             )}
-          </Card>
-          
-          {/* LP Positions */}
-          <Card className="mt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-300">LP Positions</h3>
-              <span className="text-xs text-zinc-500">{data.lps.count} positions</span>
+
+            {/* Share Button */}
+            <div className="px-4">
+              <button
+                onClick={handleShare}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-zinc-400 hover:text-zinc-300 transition-all duration-200"
+              >
+                <Share2 size={16} />
+                Share on Farcaster - Earn 25 XP
+              </button>
             </div>
-            {data.lps.count > 0 ? (
-              <p className="text-sm text-zinc-400 mt-2">
-                Total value: {formatUSD(data.lps.valueUSD)}
-              </p>
-            ) : (
-              <p className="text-xs text-zinc-600 mt-2">Coming soon</p>
-            )}
-          </Card>
-          
-          {/* Share Button */}
-          <div className="mt-6 text-center">
-            <button
-              onClick={handleShare}
-              disabled={shareLoading}
-              className="bg-[#0052FF] hover:bg-[#0047E1] disabled:opacity-50 text-white text-sm font-medium px-8 py-3 rounded-[14px] transition-all active:scale-[0.98]"
-            >
-              {shareLoading ? 'Sharing...' : 'Share My Score'}
-            </button>
-            <p className="text-xs text-zinc-500 mt-2">
-              Share on Farcaster • Earn 25 XP
-            </p>
           </div>
-          
-          {/* XP Toast */}
-          {xpToast.show && (
-            <div className={`fixed top-4 left-1/2 -translate-x-1/2 ${xpToast.xp > 0 ? 'bg-green-600' : 'bg-zinc-700'} text-white px-4 py-2 rounded-xl shadow-lg animate-bounce z-50`}>
-              <span className="font-bold">{xpToast.message}</span>
-            </div>
-          )}
-          
-          {/* Tips from Health Analysis */}
-          {data.health.tips && data.health.tips.length > 0 && (
-            <div className="mt-6 p-4 bg-white/[0.03] rounded-xl border border-white/5">
-              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <span>💡</span>
-                {data.health.score >= 75 ? 'Portfolio Insights' : 'Improve Your Score'}
-              </h4>
-              <ul className="text-xs text-zinc-400 space-y-1.5">
-                {data.health.tips.map((tip, i) => (
-                  <li key={i} className="flex items-start gap-1.5">
-                    <span className="text-zinc-500">•</span>
-                    <span>{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      ) : (
-        <Card>
-          <div className="text-center py-8">
-            <p className="text-zinc-400">Failed to load portfolio</p>
+        ) : (
+          <div className="text-center py-20 text-zinc-500">
+            Failed to load portfolio
           </div>
-        </Card>
-      )}
+        )}
+      </main>
     </AppShell>
   )
 }

@@ -1,97 +1,114 @@
-import { NextRequest, NextResponse } from 'next/server'
+﻿import { NextRequest, NextResponse } from 'next/server'
 import { createPublicClient, http } from 'viem'
 import { base } from 'viem/chains'
-
-const XP_TRACKER = process.env.NEXT_PUBLIC_XP_CONTRACT || '0x0000000000000000000000000000000000000000'
-const REP_CONTRACT = process.env.NEXT_PUBLIC_REP_CONTRACT || '0x6f0e6da952ac7e30688024cfac71a760b89495d5'
 
 const publicClient = createPublicClient({
   chain: base,
   transport: http(process.env.NEXT_PUBLIC_RPC_URL || 'https://mainnet.base.org'),
 })
 
-const XP_TRACKER_ABI = [
-  {
-    name: 'getUserXP',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
-    outputs: [
-      { name: 'xp', type: 'uint256' },
-      { name: 'trades', type: 'uint256' },
-      { name: 'streak', type: 'uint256' },
-      { name: 'level', type: 'uint256' },
-      { name: 'nextLevelXP', type: 'uint256' }
-    ]
-  },
-  {
-    name: 'getLeaderboard',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'limit', type: 'uint256' }],
-    outputs: [
-      { name: 'addresses', type: 'address[]' },
-      { name: 'xps', type: 'uint256[]' },
-      { name: 'levels', type: 'uint256[]' }
-    ]
+// In-memory XP store (persists during deployment lifetime)
+const xpStore = new Map<string, { xp: number; trades: number; streak: number; claims: string[] }>()
+
+// Genesis leaderboard data
+const GENESIS_DATA: Record<string, { xp: number; trades: number; streak: number }> = {
+  '0x22e228ade324185123a54ad25f3459a99cf51e7a': { xp: 15420, trades: 156, streak: 12 },
+  '0xd8da6bf26964af9d7eed9e03e53415d37aa96045': { xp: 12850, trades: 98, streak: 8 },
+  '0x742d35cc6634c0532925a3b844bc9e7595f5ff21': { xp: 9340, trades: 67, streak: 5 },
+}
+
+function getUserData(address: string) {
+  const key = address.toLowerCase()
+  const stored = xpStore.get(key)
+  const genesis = GENESIS_DATA[key]
+  
+  if (stored) {
+    return { ...stored, address: key }
   }
-] as const
-
-const REP_ABI = [
-  {
-    name: 'getReputation',
-    type: 'function',
-    stateMutability: 'view',
-    inputs: [{ name: 'user', type: 'address' }],
-    outputs: [
-      { name: 'score', type: 'uint256' },
-      { name: 'lastUpdated', type: 'uint256' }
-    ]
+  if (genesis) {
+    return { ...genesis, address: key, claims: [] }
   }
-] as const
+  
+  // Generate consistent XP from address
+  const hash = parseInt(address.slice(2, 10), 16)
+  return {
+    address: key,
+    xp: (hash % 500) + 100,
+    trades: (hash % 20),
+    streak: (hash % 7),
+    claims: []
+  }
+}
 
-// Genesis leaderboard (fallback)
-const GENESIS_LEADERBOARD = [
-  { address: '0x22E228AdE324185123A54Ad25F3459a99CF51E7a', xp: 15420, trades: 156, streak: 12 },
-  { address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045', xp: 12850, trades: 98, streak: 8 },
-  { address: '0x742d35Cc6634C0532925a3b844Bc9e7595f5fF21', xp: 9340, trades: 67, streak: 5 },
-  { address: '0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B', xp: 7220, trades: 45, streak: 3 },
-  { address: '0x1234567890123456789012345678901234567890', xp: 5100, trades: 34, streak: 2 },
-  { address: '0xabcdef0123456789abcdef0123456789abcdef01', xp: 3450, trades: 23, streak: 1 },
-  { address: '0x9876543210987654321098765432109876543210', xp: 2100, trades: 15, streak: 0 },
-  { address: '0xfedcba9876543210fedcba9876543210fedcba98', xp: 1250, trades: 8, streak: 0 },
-]
+function updateUserXP(address: string, xpToAdd: number, claimId?: string) {
+  const key = address.toLowerCase()
+  const current = getUserData(address)
+  
+  const newData = {
+    xp: current.xp + xpToAdd,
+    trades: current.trades,
+    streak: current.streak,
+    claims: claimId ? [...(current.claims || []), claimId] : (current.claims || [])
+  }
+  
+  xpStore.set(key, newData)
+  return newData
+}
 
-// Calculate XP from reputation (fallback)
-function calculateXPFromReputation(reputation: number, address: string): {
-  xp: number
-  trades: number
-  streak: number
-  level: number
-  nextLevelXP: number
-  rank: number
-} {
-  // Use reputation as base for XP calculation
-  const xp = reputation * 10 + (parseInt(address.slice(2, 10), 16) % 1000)
-  const trades = Math.floor(reputation / 10)
-  const streak = Math.floor(reputation / 100) % 15
-  const level = Math.floor(xp / 1000) + 1
-  const nextLevelXP = level * 1000
-  const rank = GENESIS_LEADERBOARD.findIndex(u => u.xp < xp) + 1 || GENESIS_LEADERBOARD.length + 1
-
-  return { xp, trades, streak, level, nextLevelXP, rank }
+function getLeaderboard(limit: number = 20) {
+  // Combine genesis data with stored data
+  const allUsers = new Map<string, { address: string; xp: number; trades: number; streak: number }>()
+  
+  // Add genesis users
+  for (const [addr, data] of Object.entries(GENESIS_DATA)) {
+    allUsers.set(addr, { address: addr, ...data })
+  }
+  
+  // Add/update with stored users
+  for (const [addr, data] of xpStore.entries()) {
+    const existing = allUsers.get(addr)
+    if (existing) {
+      allUsers.set(addr, { ...existing, xp: Math.max(existing.xp, data.xp) })
+    } else {
+      allUsers.set(addr, { address: addr, xp: data.xp, trades: data.trades, streak: data.streak })
+    }
+  }
+  
+  // Sort by XP descending
+  const sorted = Array.from(allUsers.values())
+    .sort((a, b) => b.xp - a.xp)
+    .slice(0, limit)
+  
+  return sorted
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { address, action, amount } = body
+    const { address, action, amount, event, xp: xpAmount } = body
 
     if (!address) {
       return NextResponse.json({ error: 'No address provided' }, { status: 400 })
     }
 
-    // Calculate XP reward based on action
+    // Handle event claim
+    if (event && xpAmount) {
+      const current = getUserData(address)
+      if (current.claims?.includes(event)) {
+        return NextResponse.json({ error: 'Already claimed', claimed: true }, { status: 400 })
+      }
+      
+      const updated = updateUserXP(address, xpAmount, event)
+      return NextResponse.json({
+        success: true,
+        xpEarned: xpAmount,
+        totalXP: updated.xp,
+        event,
+        source: 'claim'
+      })
+    }
+
+    // Handle trade actions
     let xpEarned = 0
     switch (action) {
       case 'swap':
@@ -110,53 +127,15 @@ export async function POST(req: NextRequest) {
         xpEarned = 10
     }
 
-    // In production with XP_TRACKER deployed, this would call recordSwap/recordShare etc.
-    // For now, return optimistic response
+    const updated = updateUserXP(address, xpEarned)
     
-    // Get current XP
-    let currentXP = 0
-    let level = 1
-    
-    if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
-      try {
-        const result = await publicClient.readContract({
-          address: XP_TRACKER as `0x${string}`,
-          abi: XP_TRACKER_ABI,
-          functionName: 'getUserXP',
-          args: [address as `0x${string}`],
-        })
-        currentXP = Number(result[0])
-        level = Number(result[3]) || 1
-      } catch {
-        // Use fallback
-      }
-    }
-    
-    if (currentXP === 0) {
-      // Try reputation
-      try {
-        const repResult = await publicClient.readContract({
-          address: REP_CONTRACT as `0x${string}`,
-          abi: REP_ABI,
-          functionName: 'getReputation',
-          args: [address as `0x${string}`],
-        })
-        const userData = calculateXPFromReputation(Number(repResult[0]), address)
-        currentXP = userData.xp
-        level = userData.level
-      } catch {
-        currentXP = 100
-        level = 1
-      }
-    }
-
     return NextResponse.json({
       success: true,
       xpEarned,
-      totalXP: currentXP + xpEarned,
-      level,
+      totalXP: updated.xp,
+      level: Math.floor(updated.xp / 1000) + 1,
       action,
-      source: XP_TRACKER !== '0x0000000000000000000000000000000000000000' ? 'onchain' : 'computed'
+      source: 'action'
     })
   } catch {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
@@ -166,97 +145,28 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const address = searchParams.get('address')
-  const limit = parseInt(searchParams.get('limit') || '10')
+  const limit = parseInt(searchParams.get('limit') || '20')
 
   // Single user XP query
   if (address) {
-    // Try XP_TRACKER first
-    if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
-      try {
-        const result = await publicClient.readContract({
-          address: XP_TRACKER as `0x${string}`,
-          abi: XP_TRACKER_ABI,
-          functionName: 'getUserXP',
-          args: [address as `0x${string}`],
-        })
-        
-        return NextResponse.json({
-          address,
-          xp: Number(result[0]),
-          trades: Number(result[1]),
-          streak: Number(result[2]),
-          level: Number(result[3]) || 1,
-          nextLevelXP: Number(result[4]) || 1000,
-          rank: 0, // Would need separate query
-          source: 'onchain'
-        })
-      } catch {
-        // Fall through
-      }
-    }
+    const userData = getUserData(address)
+    const leaderboard = getLeaderboard(100)
+    const rank = leaderboard.findIndex(u => u.address === address.toLowerCase()) + 1
+    const level = Math.floor(userData.xp / 1000) + 1
     
-    // Try reputation SBT
-    try {
-      const repResult = await publicClient.readContract({
-        address: REP_CONTRACT as `0x${string}`,
-        abi: REP_ABI,
-        functionName: 'getReputation',
-        args: [address as `0x${string}`],
-      })
-      
-      const userData = calculateXPFromReputation(Number(repResult[0]), address)
-      return NextResponse.json({
-        address,
-        ...userData,
-        source: 'reputation'
-      })
-    } catch {
-      // Fall through
-    }
-    
-    // Fallback
-    const userData = calculateXPFromReputation(100, address)
     return NextResponse.json({
-      address,
-      ...userData,
-      source: 'computed'
+      address: address.toLowerCase(),
+      xp: userData.xp,
+      trades: userData.trades,
+      streak: userData.streak,
+      level,
+      nextLevelXP: level * 1000,
+      rank: rank || leaderboard.length + 1,
+      source: 'baseline'
     })
   }
 
-  // Leaderboard query
-  if (XP_TRACKER !== '0x0000000000000000000000000000000000000000') {
-    try {
-      const result = await publicClient.readContract({
-        address: XP_TRACKER as `0x${string}`,
-        abi: XP_TRACKER_ABI,
-        functionName: 'getLeaderboard',
-        args: [BigInt(limit)],
-      })
-      
-      const [addresses, xps, levels] = result
-      
-      const leaderboard = addresses.map((addr, i) => ({
-        address: addr,
-        xp: Number(xps[i]),
-        level: Number(levels[i]) || 1,
-        trades: 0,
-        streak: 0,
-      }))
-      
-      return NextResponse.json({
-        leaderboard,
-        source: 'onchain',
-        total: leaderboard.length
-      })
-    } catch {
-      // Fall through
-    }
-  }
-  
-  // Fallback to genesis
-  return NextResponse.json({
-    leaderboard: GENESIS_LEADERBOARD.slice(0, limit),
-    source: 'genesis',
-    total: GENESIS_LEADERBOARD.length
-  })
+  // Leaderboard query - return flat array
+  const leaderboard = getLeaderboard(limit)
+  return NextResponse.json(leaderboard)
 }
