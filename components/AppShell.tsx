@@ -1,7 +1,9 @@
-'use client'
+﻿'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import sdk from '@farcaster/frame-sdk'
 import { AppHeader } from './AppHeader'
 
 const NAV_ITEMS = [
@@ -49,18 +51,63 @@ function NavIcon({ name, active }: { name: string; active: boolean }) {
   }
 }
 
+interface SafeAreaInsets {
+  top: number
+  bottom: number
+  left: number
+  right: number
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const [safeArea, setSafeArea] = useState<SafeAreaInsets>({ top: 0, bottom: 0, left: 0, right: 0 })
+  const [isReady, setIsReady] = useState(false)
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const inMiniApp = await sdk.isInMiniApp()
+        if (inMiniApp) {
+          const context = await sdk.context
+          if (context?.client?.safeAreaInsets) {
+            setSafeArea(context.client.safeAreaInsets)
+          }
+          await sdk.actions.ready()
+        }
+      } catch (error) {
+        console.error('SDK init error:', error)
+      } finally {
+        setIsReady(true)
+      }
+    }
+    init()
+  }, [])
 
   return (
-    <div className="min-h-screen bg-[#05060A] text-white pb-24">
+    <div 
+      className="min-h-screen bg-[#05060A] text-white"
+      style={{ 
+        paddingTop: safeArea.top,
+        paddingBottom: Math.max(safeArea.bottom, 80),
+        paddingLeft: safeArea.left,
+        paddingRight: safeArea.right,
+      }}
+    >
       <AppHeader />
 
       <div className="max-w-md mx-auto">
         {children}
       </div>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#05060A] border-t border-white/5" style={{ zIndex: 9999 }}>
+      <nav 
+        className="fixed left-0 right-0 bg-[#05060A] border-t border-white/5" 
+        style={{ 
+          bottom: safeArea.bottom,
+          zIndex: 9999,
+          paddingLeft: safeArea.left,
+          paddingRight: safeArea.right,
+        }}
+      >
         <div className="max-w-md mx-auto flex justify-around py-2 px-1">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
@@ -69,11 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 prefetch={true}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[56px] ${
-                  isActive
-                    ? 'text-blue-400'
-                    : 'text-zinc-500 hover:text-zinc-300'
-                }`}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all active:scale-95 min-w-[56px] ${isActive ? 'text-blue-400' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 <NavIcon name={item.icon} active={isActive} />
                 <span className="text-[10px] font-medium">{item.label}</span>
