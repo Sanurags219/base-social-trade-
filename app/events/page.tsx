@@ -332,47 +332,80 @@ export default function EventsPage() {
               On-Chain Tasks
             </h3>
             
-            {tasks.map(task => (
-              <button
-                key={task.id}
-                onClick={() => handleCompleteTask(task)}
-                disabled={task.completed || loading === task.id || wrongNetwork || isPending}
-                className={`w-full p-4 rounded-xl border transition-all duration-200 ${
-                  task.completed
-                    ? 'bg-green-500/10 border-green-500/30'
-                    : 'bg-white/5 border-white/10 hover:border-teal-500/30 hover:bg-white/10'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    task.completed ? 'bg-green-500/20' : 'bg-white/5'
-                  }`}>
-                    {task.completed ? <Check size={18} className="text-green-400" /> : task.icon}
+            {tasks.map(task => {
+              // Check if task requires action first (has link but not yet visited)
+              const hasAction = !!task.action
+              const canClaim = !task.completed && !wrongNetwork && !isPending
+              
+              return (
+                <div
+                  key={task.id}
+                  className={`w-full p-4 rounded-xl border transition-all duration-200 ${
+                    task.completed
+                      ? 'bg-green-500/10 border-green-500/30'
+                      : 'bg-white/5 border-white/10'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      task.completed ? 'bg-green-500/20' : 'bg-white/5'
+                    }`}>
+                      {task.completed ? <Check size={18} className="text-green-400" /> : task.icon}
+                    </div>
+                    
+                    <div className="flex-1 text-left">
+                      <p className={`text-sm font-medium ${task.completed ? 'text-green-400' : 'text-white'}`}>
+                        {task.title}
+                      </p>
+                      <p className="text-xs text-zinc-400">{task.description}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <div className="text-right mr-2">
+                        <p className="text-sm font-bold text-teal-400">+{task.xp} XP</p>
+                        {task.bstn && (
+                          <p className="text-xs text-yellow-400">+{task.bstn} BSTN</p>
+                        )}
+                      </div>
+                      
+                      {/* Two buttons: Go (if has action) + Claim */}
+                      {!task.completed && (
+                        <div className="flex gap-2">
+                          {hasAction && (
+                            <a
+                              href={task.action}
+                              className="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-300 text-xs font-medium hover:bg-blue-500/30 transition"
+                            >
+                              Go
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleCompleteTask(task)}
+                            disabled={!canClaim || loading === task.id}
+                            className="px-3 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 text-xs font-medium hover:bg-teal-500/30 transition disabled:opacity-50"
+                          >
+                            {loading === task.id ? '...' : 'Claim'}
+                          </button>
+                        </div>
+                      )}
+                      
+                      {task.completed && (
+                        <span className="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-medium">
+                          Done ✓
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="flex-1 text-left">
-                    <p className={`text-sm font-medium ${task.completed ? 'text-green-400' : 'text-white'}`}>
-                      {task.title}
-                    </p>
-                    <p className="text-xs text-zinc-400">{task.description}</p>
-                  </div>
-                  
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-teal-400">+{task.xp} XP</p>
-                    {task.bstn && (
-                      <p className="text-xs text-yellow-400">+{task.bstn} BSTN</p>
-                    )}
-                  </div>
+                  {loading === task.id && (
+                    <div className="mt-2 flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs text-zinc-400">Confirming on-chain...</span>
+                    </div>
+                  )}
                 </div>
-                
-                {loading === task.id && (
-                  <div className="mt-2 flex items-center justify-center gap-2">
-                    <div className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
-                    <span className="text-xs text-zinc-400">Confirming on-chain...</span>
-                  </div>
-                )}
-              </button>
-            ))}
+              )
+            })}
           </div>
 
           {/* Airdrop Share */}
