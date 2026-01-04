@@ -140,7 +140,8 @@ export default function EventsPage() {
   // Load from localStorage on mount
   useEffect(() => {
     if (address) {
-      const stored = localStorage.getItem('xp_' + address)
+      const addrLower = address.toLowerCase()
+      const stored = localStorage.getItem('xp_' + addrLower)
       if (stored) {
         const data = JSON.parse(stored)
         setTotalXP(data.totalXP || 0)
@@ -148,12 +149,12 @@ export default function EventsPage() {
         setClaimedTasks(new Set(data.claimed || []))
       }
       
-      // Load tx count from localStorage
-      const txStored = localStorage.getItem('tx_count_' + address)
+      // Load tx count from localStorage (try both formats)
+      const txStored = localStorage.getItem('tx_count_' + addrLower) || localStorage.getItem('tx_count_' + address)
       if (txStored) setTxCount(parseInt(txStored) || 0)
       
-      // Check copy trade status
-      const copyStored = localStorage.getItem('copy_traded_' + address)
+      // Check copy trade status (try both formats)
+      const copyStored = localStorage.getItem('copy_traded_' + addrLower) || localStorage.getItem('copy_traded_' + address)
       if (copyStored === 'true') setHasCopyTraded(true)
     }
   }, [address])
@@ -272,9 +273,12 @@ export default function EventsPage() {
   }
 
   const handleOnchainClaim = async (taskId: string) => {
-    if (!address || wrongNetwork) return
+    if (!address) return
     
     setLoading(taskId)
+
+    // Use localStorage for now - can upgrade to on-chain when contract is deployed
+    await new Promise(resolve => setTimeout(resolve, 500)) // Simulate tx
 
     try {
       if (taskId === 'five-transactions') {
@@ -284,39 +288,15 @@ export default function EventsPage() {
           return
         }
 
-        // Call on-chain claim for swap reward
-        writeContract(
-          {
-            address: XP_CONTRACT,
-            abi: XP_ABI,
-            functionName: 'claimSwapReward',
-            args: [address, BigInt(txCount)]
-          },
-          {
-            onSuccess: () => {
-              const newClaimed = new Set(claimedTasks)
-              newClaimed.add(taskId)
-              setClaimedTasks(newClaimed)
-              
-              const newXP = totalXP + 200
-              setTotalXP(newXP)
-              saveProgress(newXP, completedTasks, newClaimed)
-              setLoading(null)
-            },
-            onError: (error) => {
-              console.error('Claim error:', error)
-              // Fallback to localStorage if contract fails
-              const newClaimed = new Set(claimedTasks)
-              newClaimed.add(taskId)
-              setClaimedTasks(newClaimed)
-              
-              const newXP = totalXP + 200
-              setTotalXP(newXP)
-              saveProgress(newXP, completedTasks, newClaimed)
-              setLoading(null)
-            }
-          }
-        )
+        const newClaimed = new Set(claimedTasks)
+        newClaimed.add(taskId)
+        setClaimedTasks(newClaimed)
+        
+        const newXP = totalXP + 200
+        setTotalXP(newXP)
+        saveProgress(newXP, completedTasks, newClaimed)
+        setLoading(null)
+        
       } else if (taskId === 'copy-trade') {
         if (!hasCopyTraded) {
           alert('Use copy trading first!')
@@ -324,39 +304,14 @@ export default function EventsPage() {
           return
         }
 
-        // Call on-chain claim for copy trade reward
-        writeContract(
-          {
-            address: XP_CONTRACT,
-            abi: XP_ABI,
-            functionName: 'claimCopyTradeReward',
-            args: [address]
-          },
-          {
-            onSuccess: () => {
-              const newClaimed = new Set(claimedTasks)
-              newClaimed.add(taskId)
-              setClaimedTasks(newClaimed)
-              
-              const newXP = totalXP + 100
-              setTotalXP(newXP)
-              saveProgress(newXP, completedTasks, newClaimed)
-              setLoading(null)
-            },
-            onError: (error) => {
-              console.error('Claim error:', error)
-              // Fallback to localStorage if contract fails
-              const newClaimed = new Set(claimedTasks)
-              newClaimed.add(taskId)
-              setClaimedTasks(newClaimed)
-              
-              const newXP = totalXP + 100
-              setTotalXP(newXP)
-              saveProgress(newXP, completedTasks, newClaimed)
-              setLoading(null)
-            }
-          }
-        )
+        const newClaimed = new Set(claimedTasks)
+        newClaimed.add(taskId)
+        setClaimedTasks(newClaimed)
+        
+        const newXP = totalXP + 100
+        setTotalXP(newXP)
+        saveProgress(newXP, completedTasks, newClaimed)
+        setLoading(null)
       }
     } catch (error: any) {
       console.error('Claim failed:', error)
@@ -641,13 +596,13 @@ export default function EventsPage() {
                       {/* Claim Button */}
                       <button
                         onClick={() => handleTaskAction(task)}
-                        disabled={isClaimed || isLoading || !canClaim || wrongNetwork}
+                        disabled={isClaimed || isLoading || !canClaim}
                         className="w-full py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-teal-500 to-green-500 hover:from-teal-400 hover:to-green-400 text-black"
                       >
                         {isLoading ? (
                           <span className="flex items-center justify-center gap-2">
                             <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                            Claiming on-chain...
+                            Claiming...
                           </span>
                         ) : isClaimed ? (
                           <span className="flex items-center justify-center gap-2">
@@ -659,7 +614,7 @@ export default function EventsPage() {
                         ) : (
                           <span className="flex items-center justify-center gap-2">
                             <Coins size={16} />
-                            Claim Rewards (Gas Only)
+                            Claim Rewards
                           </span>
                         )}
                       </button>
