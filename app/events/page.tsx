@@ -9,8 +9,8 @@ import { Gift, Share2, FileCheck, UserPlus, Star, ChevronRight, Zap, Check, Shie
 
 // Contract addresses on Base Mainnet
 const SBT_CONTRACT = '0xa8efb84f532278fd3a68fe4e0d4fe15c04e5b786' as const
-const XP_CONTRACT = '0x9d357e2ca64199bb80db0fb356514d1f7e315edd' as const
-const BSTN_TOKEN = '0x0000000000000000000000000000000000000000' as const // Placeholder - deploy your BSTN token
+const XP_CONTRACT = '0x2fecd2012da58a01b844a5cd4d5d82e8303c1057' as const
+const BSTN_TOKEN = '0xa6cd42c89fec11a1fd78c2f23d000db25b3f2f4c' as const
 const BASE_CHAIN_ID = 8453
 
 const SBT_ABI = [
