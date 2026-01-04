@@ -41,10 +41,7 @@ function FarcasterInit() {
   useEffect(() => {
     const init = async () => {
       try {
-        // Import Farcaster SDK
         const { sdk } = await import('@farcaster/miniapp-sdk')
-        
-        // Signal ready to Farcaster host
         if (sdk?.actions?.ready) {
           sdk.actions.ready()
         }
@@ -54,7 +51,7 @@ function FarcasterInit() {
     }
     init()
   }, [])
-  
+
   return null
 }
 
@@ -68,7 +65,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <OnchainKitProvider chain={base}>
+        <OnchainKitProvider 
+          chain={base}
+          apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
+          config={{
+            appearance: {
+              name: 'Baseline',
+              logo: 'https://base-line.vercel.app/icon.png',
+              mode: 'dark',
+              theme: 'base',
+            },
+            wallet: {
+              display: 'modal',
+              termsUrl: 'https://base-line.vercel.app/terms',
+              privacyUrl: 'https://base-line.vercel.app/privacy',
+            },
+          }}
+        >
           <FarcasterInit />
           {mounted ? children : <div style={{ visibility: 'hidden' }}>{children}</div>}
         </OnchainKitProvider>
