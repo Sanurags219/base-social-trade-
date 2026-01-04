@@ -7,6 +7,7 @@ import { AppShell } from '@/components/AppShell'
 import { ConnectFallback } from '@/components/ConnectFallback'
 import { ProfileCard } from '@/components/ProfileCard'
 import { AirdropShareBanner } from '@/components/AirdropBanner'
+import { NotificationSettings } from '@/components/NotificationSettings'
 import { useTaskVerification } from '@/hooks/useTaskTracking'
 import { Gift, Share2, FileCheck, UserPlus, Star, ChevronRight, Zap, Check, Shield, Award, Sparkles, ArrowLeftRight, Users, Coins, Eye, Calendar, Lock } from 'lucide-react'
 
@@ -432,6 +433,11 @@ export default function EventsPage() {
           {/* Airdrop Share */}
           <div className="mx-4">
             <AirdropShareBanner xp={totalXP} />
+          </div>
+
+          {/* Mini App Notifications */}
+          <div className="mx-4">
+            <NotificationSettings />
           </div>
 
           {/* Info */}
